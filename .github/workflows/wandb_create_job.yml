@@ -25,4 +25,4 @@ jobs:
           wandb login ${{ secrets.WANDB_API_KEY }}
       - name: Create WANDB job
         run: |
-          wandb job create --project "${{ secrets.WANDB_PROJECT }}" --entity "${{ secrets.WANDB_ORG }}" --name "gha-${{ github.ref_name }}" git https://${{secrets.GITHUB_TOKEN}}@github.com/org-name/repo-name.git -g launch-testing --entry-point "scripts/test.py"
+          wandb job create --project "${{ secrets.WANDB_PROJECT }}" --entity "${{ secrets.WANDB_ORG }}" --name "gha-${{ github.ref_name }}" git https://${{ github.token }}@github.com/org-name/repo-name.git -g launch-testing --entry-point "scripts/test.py"
