@@ -27,8 +27,7 @@ jobs:
       - name: "Login to GCP" # at this point we could deploy with wandb job create code, which would deploy with this version, however it then wouldn't link back to the Github branch on W&B which is really handy.##git config credential.helper '!f() { echo username=dead-water; echo "password=${{ secrets.PAT_GITHUB_READONLY_THIS_REPO }}"; };f'
         uses: 'google-github-actions/auth@v2'
         with:
-          project_id: 'sdo-fm-2024'
-          token_format: '${{ secrets.GCP_CRED }}'
+          credentials_json: ${{ secrets.GCP_CRED }}
       - name: "Create W&B job"
         run: |
           cd ..
