@@ -28,8 +28,10 @@ jobs:
         uses: 'google-github-actions/auth@v2'
         with:
           credentials_json: ${{ secrets.GCP_CRED }}
-      - name: "Create W&B job"
+      - name: "Submit Google Cloud Build"
         run: |
           tar -cvzf ../repo.tgz ./*
           gcloud builds submit ../repo.tgz --tag ${{ secrets.GCP_ARTIFACT_REG }}/sdofm:${{ github.ref_name }}
+      - name: "Create W&B job"
+        run: |
           wandb job create --project "${{ secrets.WANDB_PROJECT }}" --entity "${{ secrets.WANDB_ORG }}" --name "gha-${{ github.ref_name }}" --entry-point "scripts/test.py" image ${{ secrets.GCP_ARTIFACT_REG }}/sdofm:${{ github.ref_name }}
