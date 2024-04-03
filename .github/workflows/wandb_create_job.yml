@@ -1,4 +1,4 @@
-name: py
+name: "Create W&B Job (w/o cloud build)"
 
 on:
   push:
