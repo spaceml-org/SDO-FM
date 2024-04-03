@@ -31,5 +31,5 @@ jobs:
           cd ..
           ls -hal
           tar -cvzf repo.tgz SDO-FM
-          gcloud builds submit repo.tgz --tag ${{ secrets.GCP_ARTIFACT_REG }}/sdofm:${{ github.ref_name }}
+          gcloud builds submit ../repo.tgz --tag ${{ secrets.GCP_ARTIFACT_REG }}/sdofm:${{ github.ref_name }}
           wandb job create --project "${{ secrets.WANDB_PROJECT }}" --entity "${{ secrets.WANDB_ORG }}" --name "gha-${{ github.ref_name }}" --entry-point "scripts/test.py" image ${{ secrets.GCP_ARTIFACT_REG }}/sdofm:${{ github.ref_name }}
