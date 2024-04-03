@@ -22,7 +22,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install black
           pip install wandb
-          pip wandb login ${{ secrets.WANDB_API_KEY }}
+          wandb login ${{ secrets.WANDB_API_KEY }}
       - name: Create WANDB job
         run: |
           wandb job create --project "${{ secrets.WANDB_PROJECT }}" --entity "${{ secrets.WANDB_ORG }}" --name "gha-${{ github.ref_name }}" git git@github.com:spaceml-org/SDO-FM.git -g launch-testing --entry-point "scripts/test.py"
