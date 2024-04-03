@@ -1,0 +1,29 @@
+name: "Create W&B Job (+ cloud build)"
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'builds/**'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo content
+        uses: actions/checkout@v4 # checkout the repository content to github runner.
+      - name: Setup python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.10.14 #install the python needed
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install wandb
+          wandb login ${{ secrets.WANDB_API_KEY }}
+      - name: Create WANDB job # at this point we could deploy with wandb job create code, which would deploy with this version, however it then wouldn't link back to the Github branch on W&B which is really handy.##git config credential.helper '!f() { echo username=dead-water; echo "password=${{ secrets.PAT_GITHUB_READONLY_THIS_REPO }}"; };f'
+        run: |
+          tar -cvxf repo.tgz .
+          gcloud builds submit repo.tgz --tag ${{ secrets.GCP_ARTIFACT_REG }}/sdofm:${{ github.ref_name }}
+          wandb job create --project "${{ secrets.WANDB_PROJECT }}" --entity "${{ secrets.WANDB_ORG }}" --name "gha-${{ github.ref_name }}" --entry-point "scripts/test.py" image ${{ secrets.GCP_ARTIFACT_REG }}/sdofm:${{ github.ref_name }}
