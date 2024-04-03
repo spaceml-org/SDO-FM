@@ -25,5 +25,4 @@ jobs:
           wandb login ${{ secrets.WANDB_API_KEY }}
       - name: Create WANDB job # at this point we could deploy with wandb job create code, which would deploy with this version, however it then wouldn't link back to the Github branch on W&B which is really handy.
         run: |
-          git config credential.helper '!f() { echo username=dead-water; echo "password=${{ github.token }}"; };f'
           wandb job create --project "${{ secrets.WANDB_PROJECT }}" --entity "${{ secrets.WANDB_ORG }}" --name "gha-${{ github.ref_name }}" git https://${{ secrets.PAT_GITHUB_READONLY_THIS_REPO }}:x-oauth-basic@github.com/spaceml-org/SDO-FM.git -g launch-testing --entry-point "scripts/test.py"
