@@ -27,6 +27,7 @@ jobs:
       - name: "Create W&B job" # at this point we could deploy with wandb job create code, which would deploy with this version, however it then wouldn't link back to the Github branch on W&B which is really handy.##git config credential.helper '!f() { echo username=dead-water; echo "password=${{ secrets.PAT_GITHUB_READONLY_THIS_REPO }}"; };f'
         run: |
           cd ..
+          ls -hal
           tar -cvzf repo.tgz SFO-FM
           gcloud builds submit repo.tgz --tag ${{ secrets.GCP_ARTIFACT_REG }}/sdofm:${{ github.ref_name }}
           wandb job create --project "${{ secrets.WANDB_PROJECT }}" --entity "${{ secrets.WANDB_ORG }}" --name "gha-${{ github.ref_name }}" --entry-point "scripts/test.py" image ${{ secrets.GCP_ARTIFACT_REG }}/sdofm:${{ github.ref_name }}
