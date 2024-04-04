@@ -1,0 +1,53 @@
+# default.yaml
+
+# general
+experiment:
+  project: "sdofm"
+  seed: 0
+  disable_cuda: false
+  disable_wandb: false
+  wandb_entity: "fdlx"
+  wandb_group: "sdofm-phase1"
+  wandb_job_type: "pretrain"
+  fold: null
+  evaluate: false   # skip training and only evaluate (requires checkpoint to be set)
+  checkpoint: null  # this is the wandb run_id of the checkpoint to load
+  device: null      # this is set automatically using the disable_cuda flag and torch.cuda.is_available()
+  precision: 64     # 32, 64
+  log_n_batches: 1000 # log every n training batches
+  save_results: true # save full results to file and wandb
+
+# dataset configuration
+data:
+  min_date: "2010-05-16 00:00:00"
+  max_date: "2018-11-29 00:00:00"
+  train_subsample: null
+  val_test_subsample: null
+  num_workers: 16    # set appropriately for your machine
+  output_directory: "output"
+  data_directory: "data"
+
+# model configuration
+model:
+  sdofm:
+    encoder: "3d"
+  # ML optimization arguments:
+  opt:
+    loss: "mse" # options: "mae", "mse", "mape"
+    scheduler: "constant" #other options: "cosine", "plateau", "exp"
+    scheduler_warmup: 0
+    batch_size: 256
+    learning_rate: 0.0001
+    weight_decay: 0.0
+    optimizer: "adam"
+    epochs: 4
+    patience: 2
+
+# hydra configuration
+hydra:
+  mode: MULTIRUN
+  run:
+    dir: ${data.output_directory}/${now:%Y-%m-%d-%H-%M-%S}
+  sweep:
+    dir: ${hydra.run.dir}
+    subdir: ${hydra.job.num}

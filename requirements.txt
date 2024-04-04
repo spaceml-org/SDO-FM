@@ -1,1 +1,3 @@
 wandb
+omegaconf
+hydra-core
