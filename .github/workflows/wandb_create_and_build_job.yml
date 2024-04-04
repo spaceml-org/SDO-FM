@@ -2,10 +2,8 @@ name: "Create W&B Job (+ cloud build)"
 
 on:
   push:
-    branches:
-     - '*'
     tags:
-      - 'builds/**'
+      - 'v*.*.*'
 
 jobs:
   build:
