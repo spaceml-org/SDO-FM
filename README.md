@@ -7,6 +7,7 @@
 <a href="https://github.com/psf/black"><img alt="Code style: black" src="https://img.shields.io/badge/code%20style-black-000000.svg"></a>
 <a href="https://wandb.ai/fdlx/sdofm/"><img alt="Weights and Biases" src="https://img.shields.io/badge/Weights_&_Biases-FFCC33?style=flat&logo=WeightsAndBiases&logoColor=black"></a>
 <a href="https://console.cloud.google.com/cloud-build/builds?project=sdo-fm-2024"><img alt="Cloud Build" src="https://img.shields.io/badge/cloud_build-blue.svg"></a>
+<a href="https://github.com/spaceml-org/SDO-FM/actions/workflows/black.yml"><img alt="Lint" src="https://github.com/spaceml-org/SDO-FM/actions/workflows/black.yml/badge.svg?branch=main"></a>
 </p>
 
 SDO-FM is envisioned as a ‘multi-modal’ foundation model, integrating instruments on SDO; AIA, EVE, HMI. We will be looking to experiment with the scope multi-modal and choose datasets that are most complimentary to the task. The project will also investigate if the Foundation model can either replicate or leverage [SDOML](https://sdoml.org) (the data product developed in FDL.AI). 
