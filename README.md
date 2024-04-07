@@ -46,7 +46,7 @@ Processes for continually updating the data until the present day.
 
 ## Pre-training
 ```bash
-python scripts/main.py --config-name=pretraining
+python scripts/main.py --config-name=pretrain
 ```
 
 

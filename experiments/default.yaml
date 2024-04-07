@@ -2,13 +2,18 @@
 
 # general
 experiment:
+  name: "default"
   project: "sdofm"
+  task: "" # options: pretrain_mae
   seed: 0
   disable_cuda: false
   disable_wandb: false
-  wandb_entity: "fdlx"
-  wandb_group: "sdofm-phase1"
-  wandb_job_type: "pretrain"
+  wandb:
+    entity: "fdlx"
+    group: "sdofm-phase1"
+    job_type: "pretrain"
+    tags: []
+    note : null
   fold: null
   evaluate: false   # skip training and only evaluate (requires checkpoint to be set)
   checkpoint: null  # this is the wandb run_id of the checkpoint to load
@@ -16,6 +21,17 @@ experiment:
   precision: 64     # 32, 64
   log_n_batches: 1000 # log every n training batches
   save_results: true # save full results to file and wandb
+  distributed:
+    enabled: false
+    backend: "ddp"
+    nproc_per_node: 1
+    nnodes: 1
+    node_rank: 0
+    world_size: 2
+    # node_rank: 0
+    # local_rank: 0
+    # master_addr: "localhost"
+    # master_port: 12345
 
 # dataset configuration
 data:
@@ -25,12 +41,38 @@ data:
   val_test_subsample: null
   num_workers: 16    # set appropriately for your machine
   output_directory: "output"
-  data_directory: "data"
+  sdoml:
+    base_directory: "base"
+    instrument_sub_directory:
+      hmi: "hmi"
+      aia: "aia"
+      eve: "eve"
+    components: null # null for select all magnetic components [Bx, By, Bz]
+    wavelengths: null # null for select all wavelengths channels [94, 131, 171, 193, 211, 304, 335, 1600, 1700]
+    metadata: "meta"
 
-# model configuration
+# model configurations
 model:
+  # PRETRAINERS
   sdofm:
     encoder: "3d"
+  mae:
+    decoder_depth: 8
+    decoder_embed_dim: 512
+    decoder_num_heads: 16
+    depth: 12
+    embed_dim: 768
+    img_size: 224
+    in_chans: 6
+    num_frames: 3
+    num_heads: 12
+    patch_size: 16
+    tubelet_size: 1
+    mask_ratio: 0.75
+    random_cropping: true
+  # FINE-TUNERS
+  dimming:
+    dims: [128,64]
   # ML optimization arguments:
   opt:
     loss: "mse" # options: "mae", "mse", "mape"

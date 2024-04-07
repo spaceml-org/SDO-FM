@@ -17,6 +17,7 @@ from sdofm.utils import days_hours_mins_secs_str
 # loads the config file
 @hydra.main(config_path="../experiments", config_name="default")
 def main(cfg: DictConfig) -> None:
+    # set seed
     torch.manual_seed(cfg.experiment.seed)
     np.random.seed(cfg.experiment.seed)
     random.seed(cfg.experiment.seed)
@@ -28,6 +29,18 @@ def main(cfg: DictConfig) -> None:
         else "cpu"
     )
 
+    # set precision of torch tensors
+    if cfg.experiment.device == "cuda":
+        match cfg.experiment.precision:
+            case 64:
+                torch.set_default_tensor_type(torch.DoubleTensor)
+            case 32:
+                torch.set_default_tensor_type(torch.FloatTensor)
+            case _:
+                raise NotImplementedError(
+                    f"Precision {cfg.experiment.precision} not implemented"
+                )
+
     # run experiment
     print(f"\nRunning with config:")
     print(OmegaConf.to_yaml(cfg, resolve=False, sort_keys=False))
@@ -35,14 +48,15 @@ def main(cfg: DictConfig) -> None:
 
     print(f"Using device: {cfg.experiment.device}")
 
-    if cfg.experiment.project == "sdofm":
-        from scripts.pretrain import pretrain_sdofm
+    match cfg.experiment.task:
+        case "pretrain_mae":
+            from scripts.pretrain import pretrain_sdofm
 
-        pretrain_sdofm(cfg)
-    else:
-        raise NotImplementedError(
-            f"Experiment {cfg.experiment.project} not implemented"
-        )
+            pretrain_sdofm(cfg)
+        case _:
+            raise NotImplementedError(
+                f"Experiment {cfg.experiment.task} not implemented"
+            )
 
 
 if __name__ == "__main__":
