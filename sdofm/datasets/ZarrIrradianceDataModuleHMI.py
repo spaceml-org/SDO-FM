@@ -123,7 +123,7 @@ class ZarrIrradianceDatasetHMI(Dataset):
         eve_ion_dict = {}
         for ion in self.ions:
             idx_eve = self.aligndata.iloc[idx]["idx_eve"]
-            eve_ion_dict[ion] = self.eve_data["MEGS-A"][ion][idx_eve]
+            eve_ion_dict[ion] = self.eve_data[ion][idx_eve]
             if self.normalizations:
                 eve_ion_dict[ion] -= self.normalizations["EVE"][ion]["mean"]
                 eve_ion_dict[ion] /= self.normalizations["EVE"][ion]["std"]
@@ -249,7 +249,7 @@ class ZarrIrradianceDataModuleHMI(pl.LightningDataModule):
             ]
 
         # Cache filenames
-        if len(self.ions) == 38:
+        if len(self.ions) == 39:
             ions_id = "EVE_FULL"
         else:
             ions_id = "_".join(ions).replace(" ", "_")
@@ -449,8 +449,8 @@ class ZarrIrradianceDataModuleHMI(pl.LightningDataModule):
         print(f"Aligning EVE data")
         df_t_eve = pd.DataFrame(
             {
-                "Time": pd.to_datetime(self.eve_data["MEGS-A"]["Time"][:]),
-                "idx_eve": np.arange(0, len(self.eve_data["MEGS-A"]["Time"])),
+                "Time": pd.to_datetime(self.eve_data["Time"][:]),
+                "idx_eve": np.arange(0, len(self.eve_data["Time"])),
             }
         )
         df_t_eve["Time"] = pd.to_datetime(df_t_eve["Time"]).dt.round(self.cadence)
@@ -461,7 +461,7 @@ class ZarrIrradianceDataModuleHMI(pl.LightningDataModule):
 
         # remove missing eve data (missing values are labeled with negative values)
         for ion in self.ions:
-            ion_data = self.eve_data["MEGS-A"][ion][:]
+            ion_data = self.eve_data[ion][:]
             join_series = join_series.loc[ion_data[join_series["idx_eve"]] > 0, :]
 
         join_series.sort_index(inplace=True)
@@ -512,7 +512,7 @@ class ZarrIrradianceDataModuleHMI(pl.LightningDataModule):
         normalizations_eve = {}
         for ion in self.ions:
             # Note that selecting on idx normalizations_align['idx_eve'] removes negative values from EVE data.
-            channel_data = self.eve_data["MEGS-A"][ion][
+            channel_data = self.eve_data[ion][
                 normalizations_align["idx_eve"]
             ][:]
             normalizations_eve[ion] = {}

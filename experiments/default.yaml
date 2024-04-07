@@ -47,8 +47,9 @@ data:
       hmi: "hmi"
       aia: "aia"
       eve: "eve"
-    components: null # null for select all magnetic components [Bx, By, Bz]
-    wavelengths: null # null for select all wavelengths channels [94, 131, 171, 193, 211, 304, 335, 1600, 1700]
+    components: null # null for select all magnetic components ["Bx", "By", "Bz"]
+    wavelengths: null # null for select all wavelengths channels ["131A","1600A","1700A","171A","193A","211A","304A","335A","94A"]
+    ions: null: # null to select all ion channels ["C III", "Fe IX", "Fe VIII", "Fe X", "Fe XI", "Fe XII", "Fe XIII", "Fe XIV", "Fe XIX", "Fe XV", "Fe XVI", "Fe XVIII", "Fe XVI_2", "Fe XX", "Fe XX_2", "Fe XX_3", "H I", "H I_2", "H I_3", "He I", "He II", "He II_2", "He I_2", "Mg IX", "Mg X", "Mg X_2", "Ne VII", "Ne VIII", "O II", "O III", "O III_2", "O II_2", "O IV", "O IV_2", "O V", "O VI", "S XIV", "Si XII", "Si XII_2"]
     metadata: "meta"
 
 # model configurations
