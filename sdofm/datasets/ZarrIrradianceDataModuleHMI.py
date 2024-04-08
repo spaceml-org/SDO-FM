@@ -512,9 +512,7 @@ class ZarrIrradianceDataModuleHMI(pl.LightningDataModule):
         normalizations_eve = {}
         for ion in self.ions:
             # Note that selecting on idx normalizations_align['idx_eve'] removes negative values from EVE data.
-            channel_data = self.eve_data[ion][
-                normalizations_align["idx_eve"]
-            ][:]
+            channel_data = self.eve_data[ion][normalizations_align["idx_eve"]][:]
             normalizations_eve[ion] = {}
             normalizations_eve[ion]["count"] = channel_data.shape[0]
             normalizations_eve[ion]["sum"] = channel_data.sum()

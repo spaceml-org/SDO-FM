@@ -6,13 +6,12 @@ from typing import Optional
 import segmentation_models_pytorch as smp
 import torch
 import torch.nn as nn
+from decoders.prithvi import ConvTransformerTokensToEmbeddingNeck
 from einops import rearrange
+from encoders.prithvi import MaskedAutoencoderViT
 from omegaconf import OmegaConf
 from segmentation_models_pytorch import Unet
 from segmentation_models_pytorch.decoders.unet.decoder import UnetDecoder
-
-from decoders.prithvi import ConvTransformerTokensToEmbeddingNeck
-from encoders.prithvi import MaskedAutoencoderViT
 
 BANDS = ["B02", "B03", "B04", "B05", "B06", "B07"]
 MEAN = [
