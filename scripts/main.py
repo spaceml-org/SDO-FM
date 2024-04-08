@@ -9,9 +9,10 @@ import time
 import hydra
 import numpy as np
 import torch
+import wandb
 from omegaconf import DictConfig, OmegaConf
 
-from sdofm.utils import days_hours_mins_secs_str
+from sdofm import utils  # import days_hours_mins_secs_str
 
 
 # loads the config file
@@ -53,6 +54,10 @@ def main(cfg: DictConfig) -> None:
             from scripts.pretrain import pretrain_sdofm
 
             pretrain_sdofm(cfg)
+        case "evaluate_mae":
+            from scripts.pretrain import evaluate_sdofm
+
+            pass
         case _:
             raise NotImplementedError(
                 f"Experiment {cfg.experiment.task} not implemented"
@@ -66,6 +71,6 @@ if __name__ == "__main__":
     main()
     print(
         "\nTotal duration: {}".format(
-            days_hours_mins_secs_str(time.time() - time_start)
+            utils.days_hours_mins_secs_str(time.time() - time_start)
         )
     )

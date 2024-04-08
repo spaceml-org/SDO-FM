@@ -1,17 +1,21 @@
 # Modified from: https://github.com/isaaccorley/prithvi-pytorch/blob/main/prithvi_pytorch/model.py
 # This is the main model file for the Prithvi model.
 
+import os
 from typing import Optional
 
 import segmentation_models_pytorch as smp
 import torch
 import torch.nn as nn
+import wandb
 from decoders.prithvi import ConvTransformerTokensToEmbeddingNeck
 from einops import rearrange
 from encoders.prithvi import MaskedAutoencoderViT
-from omegaconf import OmegaConf
+from omegaconf import DictConfig, OmegaConf
 from segmentation_models_pytorch import Unet
 from segmentation_models_pytorch.decoders.unet.decoder import UnetDecoder
+
+import sdofm.utils as utils
 
 BANDS = ["B02", "B03", "B04", "B05", "B06", "B07"]
 MEAN = [
@@ -35,39 +39,48 @@ STD = [
 class PrithviEncoder(nn.Module):
     def __init__(
         self,
-        cfg_path: str,
-        ckpt_path: Optional[str] = None,
-        num_frames: int = 1,
-        in_chans: int = 6,
-        img_size: int = 224,
+        img_size=224,
+        patch_size=16,
+        num_frames=3,
+        tubelet_size=1,
+        in_chans=3,
+        embed_dim=1024,
+        depth=24,
+        num_heads=16,
+        decoder_embed_dim=512,
+        decoder_depth=8,
+        decoder_num_heads=16,
+        mlp_ratio=4.0,
+        norm_layer=nn.LayerNorm,
+        norm_pix_loss=False,
     ):
         super().__init__()
-        cfg = OmegaConf.load(cfg_path)
-        cfg.model_args.num_frames = num_frames
-        cfg.model_args.in_chans = in_chans
-        cfg.model_args.img_size = img_size
+        # cfg.model.mae.num_frames = num_frames
+        # cfg.model.mae.in_chans = in_chans
+        # cfg.model_args.img_size = img_size
 
-        self.embed_dim = cfg.model_args.embed_dim
-        self.depth = cfg.model_args.depth
-        self.num_frames = num_frames
-        self.in_chans = in_chans
-        self.img_size = img_size
-        self.patch_size = cfg.model_args.patch_size
-        encoder = MaskedAutoencoderViT(**cfg.model_args)
-
-        if ckpt_path is not None:
-            state_dict = torch.load(ckpt_path, map_location="cpu")
-
-            if num_frames != 3:
-                del state_dict["pos_embed"]
-                del state_dict["decoder_pos_embed"]
-
-            if in_chans != 6:
-                del state_dict["patch_embed.proj.weight"]
-                del state_dict["decoder_pred.weight"]
-                del state_dict["decoder_pred.bias"]
-
-            encoder.load_state_dict(state_dict, strict=False)
+        # self.embed_dim = cfg.model_args.embed_dim
+        # self.depth = cfg.model_args.depth
+        # self.num_frames = num_frames
+        # self.in_chans = in_chans
+        # self.img_size = img_size
+        # self.patch_size = cfg.model_args.patch_size
+        encoder = MaskedAutoencoderViT(
+            img_size,
+            patch_size,
+            num_frames,
+            tubelet_size,
+            in_chans,
+            embed_dim,
+            depth,
+            num_heads,
+            decoder_embed_dim,
+            decoder_depth,
+            decoder_num_heads,
+            mlp_ratio,
+            norm_layer,
+            norm_pix_loss,
+        )
         self.encoder = encoder
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -216,23 +229,49 @@ class PrithviUnet(Unet):
 class PrithviEncoderDecoder(nn.Module):
     def __init__(
         self,
-        num_classes: int,
-        cfg_path: str,
-        ckpt_path: Optional[str] = None,
-        in_chans: int = 6,
-        img_size: int = 224,
+        # MAE
+        img_size=224,
+        patch_size=16,
+        num_frames=3,
+        tubelet_size=1,
+        in_chans=3,
+        embed_dim=1024,
+        depth=24,
+        num_heads=16,
+        decoder_embed_dim=512,
+        decoder_depth=8,
+        decoder_num_heads=16,
+        mlp_ratio=4.0,
+        norm_layer=nn.LayerNorm,
+        norm_pix_loss=False,
+        # other
+        num_classes: int = 3,
+        # cfg_path: str,
+        # ckpt_path: Optional[str] = None,
+        # in_chans: int = 6,
+        # img_size: int = 224,
         freeze_encoder: bool = False,
         num_neck_filters: int = 32,
     ):
         super().__init__()
         self.num_classes = num_classes
         self.encoder = PrithviEncoder(
-            ckpt_path=ckpt_path,
-            cfg_path=cfg_path,
-            num_frames=1,
-            in_chans=in_chans,
-            img_size=img_size,
+            img_size,
+            patch_size,
+            num_frames,
+            tubelet_size,
+            in_chans,
+            embed_dim,
+            depth,
+            num_heads,
+            decoder_embed_dim,
+            decoder_depth,
+            decoder_num_heads,
+            mlp_ratio,
+            norm_layer,
+            norm_pix_loss,
         )
+
         if freeze_encoder:
             self.encoder.eval()
             for param in self.encoder.parameters():

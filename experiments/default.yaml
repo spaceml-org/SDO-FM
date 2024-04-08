@@ -57,20 +57,38 @@ model:
   # PRETRAINERS
   sdofm:
     encoder: "3d"
-  mae:
-    decoder_depth: 8
-    decoder_embed_dim: 512
-    decoder_num_heads: 16
-    depth: 12
-    embed_dim: 768
-    img_size: 224
-    in_chans: 6
-    num_frames: 3
-    num_heads: 12
-    patch_size: 16
-    tubelet_size: 1
-    mask_ratio: 0.75
-    random_cropping: true
+  prithvi:
+    num_classes: 3
+    freeze_encoder: false
+    num_neck_filters: 32
+    mae:
+      img_size: 512
+      patch_size: 16
+      num_frames: 3
+      tubelet_size: 1
+      in_chans: 3
+      embed_dim: 1024
+      depth: 24
+      num_heads: 16
+      decoder_embed_dim: 512
+      decoder_depth: 8
+      decoder_num_heads: 16
+      mlp_ratio: 4.0
+      # norm_layer: defaults to nn.LayerNorm
+      norm_pix_loss: False
+    # decoder_depth: 8
+    # decoder_embed_dim: 512
+    # decoder_num_heads: 16
+    # depth: 12
+    # embed_dim: 768
+    # img_size: 224
+    # in_chans: 6
+    # num_frames: 3
+    # num_heads: 12
+    # patch_size: 16
+    # tubelet_size: 1
+    # mask_ratio: 0.75
+    # random_cropping: true
   # FINE-TUNERS
   dimming:
     dims: [128,64]
