@@ -12,4 +12,4 @@ jobs:
           options: "--check --verbose"
           src: "./sdofm"
           jupyter: true
-          version: "= 24.3.0"
+          version: "== 24.3.0"
