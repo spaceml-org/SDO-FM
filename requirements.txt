@@ -8,3 +8,5 @@ zarr
 pandas
 segmentation-models-pytorch 
 einops
+lightning
+scipy

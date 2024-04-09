@@ -1,0 +1,3 @@
+# all the normal requirements.txt plus helpful functions for notebooks
+scikit-image
+zarr[jupyter]
