@@ -8,22 +8,19 @@ import torch
 import wandb
 
 from sdofm import utils
-from sdofm.datasets import SDOMLDataModule
+from sdofm.datasets import DimmedSDOMLDataModule
 from sdofm.pretraining import MAE
 
 
-class Pretrainer(object):
+class AutocalibrationFinetuner(object):
     def __init__(self, cfg):
         self.cfg = cfg
         self.trainer = None
 
     def run(self):
-        print("\nPRE-TRAINING\n")
+        print("\nFINE TUNING\n")
 
-        data_module = SDOMLDataModule(
-            # hmi_path=os.path.join(
-            #     self.cfg.data.sdoml.base_directory, self.cfg.data.sdoml.sub_directory.hmi
-            # ),
+        data_module = DimmedSDOMLDataModule(
             hmi_path=None,
             aia_path=os.path.join(
                 self.cfg.data.sdoml.base_directory,

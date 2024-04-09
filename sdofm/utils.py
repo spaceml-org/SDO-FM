@@ -1,11 +1,15 @@
 # Assortment of variously useful functions
 
 import collections
-import torch
-import wandb
 import os
 import shutil
 
+import numpy as np
+import torch
+import wandb
+
+
+# GENERAL
 def days_hours_mins_secs_str(total_seconds):
     d, r = divmod(total_seconds, 86400)
     h, r = divmod(r, 3600)
@@ -24,7 +28,7 @@ def flatten_dict(d, parent_key="", sep="_"):
     return dict(items)
 
 
-
+# CHECKPOINTING (not really needed as lightning does it)
 def load_checkpoint(model, optimizer, scheduler, device, checkpoint_file: str):
     """Loads a model checkpoint.
     Params:
@@ -73,10 +77,9 @@ def save_checkpoint(checkpoint_dict: dict, is_best: bool):
         print(f"Saved best checkpoint to {best_file}")
         wandb.save(best_file, policy="live")  # save to wandb
 
+
 def wandb_restore_checkpoint(cfg):
-    model_path = (
-        f"{cfg.data.output_directory}/checkpoints/{cfg.experiment.checkpoint}"
-    )
+    model_path = f"{cfg.data.output_directory}/checkpoints/{cfg.experiment.checkpoint}"
     os.makedirs(model_path, exist_ok=True)
     # restore from wandb
     wandb_best_file = wandb.restore(
@@ -98,3 +101,90 @@ def wandb_restore_checkpoint(cfg):
         f"Loaded checkpoint from {wandb_best_file.name} with loss {best_loss} at epoch {best_epoch}"
     )
     return model, optimizer, scheduler
+
+
+#### MAE FUNCTIONS
+def get_1d_sincos_pos_embed_from_grid(embed_dim, pos):
+    """
+    embed_dim: output dimension for each position
+    pos: a list of positions to be encoded: size (M,)
+    out: (M, D)
+    """
+    assert embed_dim % 2 == 0
+    omega = np.arange(embed_dim // 2, dtype=np.float32)
+    omega /= embed_dim / 2.0
+    omega = 1.0 / 10000**omega  # (D/2,)
+
+    pos = pos.reshape(-1)  # (M,)
+    out = np.einsum("m,d->md", pos, omega)  # (M, D/2), outer product
+
+    emb_sin = np.sin(out)  # (M, D/2)
+    emb_cos = np.cos(out)  # (M, D/2)
+
+    emb = np.concatenate([emb_sin, emb_cos], axis=1)  # (M, D)
+    return emb
+
+
+# --------------------------------------------------------
+# 2D sine-cosine position embedding
+# References:
+# Transformer: https://github.com/tensorflow/models/blob/master/official/nlp/transformer/model_utils.py
+# MoCo v3: https://github.com/facebookresearch/moco-v3
+# --------------------------------------------------------
+def get_2d_sincos_pos_embed(embed_dim, grid_size, cls_token=False):
+    """
+    grid_size: int of the grid height and width
+    return:
+    pos_embed: [grid_size*grid_size, embed_dim] or [1+grid_size*grid_size, embed_dim] (w/ or w/o cls_token)
+    """
+    grid_h = np.arange(grid_size, dtype=np.float32)
+    grid_w = np.arange(grid_size, dtype=np.float32)
+    grid = np.meshgrid(grid_w, grid_h)  # here w goes first
+    grid = np.stack(grid, axis=0)
+
+    grid = grid.reshape([2, 1, grid_size, grid_size])
+    pos_embed = get_2d_sincos_pos_embed_from_grid(embed_dim, grid)
+    if cls_token:
+        pos_embed = np.concatenate([np.zeros([1, embed_dim]), pos_embed], axis=0)
+    return pos_embed
+
+
+def get_2d_sincos_pos_embed_from_grid(embed_dim, grid):
+    assert embed_dim % 2 == 0
+
+    # use half of dimensions to encode grid_h
+    emb_h = get_1d_sincos_pos_embed_from_grid(embed_dim // 2, grid[0])  # (H*W, D/2)
+    emb_w = get_1d_sincos_pos_embed_from_grid(embed_dim // 2, grid[1])  # (H*W, D/2)
+
+    emb = np.concatenate([emb_h, emb_w], axis=1)  # (H*W, D)
+    return emb
+
+
+def get_3d_sincos_pos_embed(embed_dim, grid_size, cls_token=False):
+    """
+    grid_size: 3d tuple of grid size: t, h, w
+    return:
+    pos_embed: L, D
+    """
+
+    assert embed_dim % 16 == 0
+
+    t_size, h_size, w_size = grid_size
+
+    w_embed_dim = embed_dim // 16 * 6
+    h_embed_dim = embed_dim // 16 * 6
+    t_embed_dim = embed_dim // 16 * 4
+
+    w_pos_embed = get_1d_sincos_pos_embed_from_grid(w_embed_dim, np.arange(w_size))
+    h_pos_embed = get_1d_sincos_pos_embed_from_grid(h_embed_dim, np.arange(h_size))
+    t_pos_embed = get_1d_sincos_pos_embed_from_grid(t_embed_dim, np.arange(t_size))
+
+    w_pos_embed = np.tile(w_pos_embed, (t_size * h_size, 1))
+    h_pos_embed = np.tile(np.repeat(h_pos_embed, w_size, axis=0), (t_size, 1))
+    t_pos_embed = np.repeat(t_pos_embed, h_size * w_size, axis=0)
+
+    pos_embed = np.concatenate((w_pos_embed, h_pos_embed, t_pos_embed), axis=1)
+
+    if cls_token:
+        pos_embed = np.concatenate([np.zeros([1, embed_dim]), pos_embed], axis=0)
+    return pos_embed

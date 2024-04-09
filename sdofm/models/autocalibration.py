@@ -42,7 +42,8 @@ class Autocalibration1(nn.Module):
     """
 
     def __init__(self, input_shape, output_dim):
-        super(Autocalibration1, self).__init__()
+        super().__init__()
+        # NO LONGER CHANNELS x IMAGES, now embeddings
         if len(input_shape) != 3:
             raise ValueError("Expecting an input_shape representing dimensions CxHxW")
         self._input_channels = input_shape[0]
@@ -670,7 +671,8 @@ class Autocalibration13(nn.Module):
     """
 
     def __init__(self, input_shape, output_dim):
-        super(Autocalibration13, self).__init__()
+        super().__init__()
+        # NO LONGER CHANNELS x IMAGES, now embeddings
         if len(input_shape) != 3:
             raise ValueError("Expecting an input_shape representing dimensions CxHxW")
         self._input_channels = input_shape[0]

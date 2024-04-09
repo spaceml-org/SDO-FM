@@ -5,14 +5,20 @@ Main entry point. Uses Hydra to load config files and override defaults with com
 import os
 import random
 import time
+from pathlib import Path
 
 import hydra
 import numpy as np
 import torch
 import wandb
 from omegaconf import DictConfig, OmegaConf
+from pytorch_lightning import seed_everything
+from pytorch_lightning.loggers.wandb import WandbLogger
 
 from sdofm import utils  # import days_hours_mins_secs_str
+from sdofm.utils import flatten_dict
+
+wandb_logger = None
 
 
 # loads the config file
@@ -22,6 +28,7 @@ def main(cfg: DictConfig) -> None:
     torch.manual_seed(cfg.experiment.seed)
     np.random.seed(cfg.experiment.seed)
     random.seed(cfg.experiment.seed)
+    seed_everything(cfg.experiment.seed)
 
     # set device using config disable_cuda option and torch.cuda.is_available()
     cfg.experiment.device = (
@@ -48,6 +55,29 @@ def main(cfg: DictConfig) -> None:
     print("\n")
 
     print(f"Using device: {cfg.experiment.device}")
+
+    output_dir = Path(cfg.data.output_directory)
+    output_dir.mkdir(exist_ok=True, parents=True)
+    print(f"Created directory for storing results: {cfg.data.output_directory}")
+    cache_dir = Path(f"{cfg.data.output_directory}/.cache")
+    cache_dir.mkdir(exist_ok=True, parents=True)
+    os.environ["WANDB_CACHE_DIR"] = f"{cfg.data.output_directory}/.cache"
+    os.environ["WANDB_MODE"] = "offline" if cfg.experiment.disable_wandb else "online"
+
+    wandb_logger = WandbLogger(
+        # WandbLogger params
+        name=cfg.experiment.name,
+        project=cfg.experiment.project,
+        dir=cfg.data.output_directory,
+        log_model="all",
+        # kwargs for wandb.init
+        tags=cfg.experiment.wandb.tags,
+        notes=cfg.experimentw.wandb.notes,
+        group=cfg.experiment.wandb_group,
+        save_code=True,
+        job_type=cfg.experiment.job_type,
+        config=flatten_dict(cfg),
+    )
 
     match cfg.experiment.task:
         case "pretrain_mae":

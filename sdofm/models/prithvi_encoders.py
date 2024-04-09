@@ -4,18 +4,18 @@
 import os
 from typing import Optional
 
+import pytorch_lightning as pl
 import segmentation_models_pytorch as smp
 import torch
 import torch.nn as nn
 import wandb
-from decoders.prithvi import ConvTransformerTokensToEmbeddingNeck
 from einops import rearrange
-from encoders.prithvi import MaskedAutoencoderViT
 from omegaconf import DictConfig, OmegaConf
 from segmentation_models_pytorch import Unet
 from segmentation_models_pytorch.decoders.unet.decoder import UnetDecoder
 
-import sdofm.utils as utils
+from .. import utils
+from . import ConvTransformerTokensToEmbeddingNeck, MaskedAutoencoderViT3D
 
 BANDS = ["B02", "B03", "B04", "B05", "B06", "B07"]
 MEAN = [
@@ -59,13 +59,13 @@ class PrithviEncoder(nn.Module):
         # cfg.model.mae.in_chans = in_chans
         # cfg.model_args.img_size = img_size
 
-        # self.embed_dim = cfg.model_args.embed_dim
+        # self.embed_dim = embed_dim
         # self.depth = cfg.model_args.depth
         # self.num_frames = num_frames
         # self.in_chans = in_chans
         # self.img_size = img_size
         # self.patch_size = cfg.model_args.patch_size
-        encoder = MaskedAutoencoderViT(
+        encoder = MaskedAutoencoderViT3D(
             img_size,
             patch_size,
             num_frames,
@@ -254,7 +254,10 @@ class PrithviEncoderDecoder(nn.Module):
         num_neck_filters: int = 32,
     ):
         super().__init__()
+
         self.num_classes = num_classes
+
+        # BACKBONE
         self.encoder = PrithviEncoder(
             img_size,
             patch_size,
@@ -277,14 +280,18 @@ class PrithviEncoderDecoder(nn.Module):
             for param in self.encoder.parameters():
                 param.requires_grad = False
 
-        num_tokens = self.encoder.img_size // self.encoder.patch_size
+        num_tokens = img_size // patch_size
+
+        # NECK
         self.decoder = ConvTransformerTokensToEmbeddingNeck(
-            embed_dim=self.encoder.embed_dim,
+            embed_dim=embed_dim,
             output_embed_dim=num_neck_filters,
             Hp=num_tokens,
             Wp=num_tokens,
             drop_cls_token=True,
         )
+
+        # HEAD
         self.head = nn.Conv2d(
             in_channels=num_neck_filters,
             out_channels=num_classes,
