@@ -44,27 +44,36 @@ In version 2.0, we present an update to the work outlined in [Galvez et al. 2019
 FITS header/keyword information (such as observation time, and exposure time).
 Processes for continually updating the data until the present day.
 
+## Repo structure
+```bash
+├── assets              # images for this readme
+├── experiments         # configuration files for different trails 
+├── notebooks           # visualisation/testing ipynb
+├── scripts             # entrypoint and highest level executors
+├── sdofm               # python package
+│   ├── datasets        # dataloaders/modules
+│   ├── finetuning      # modules for finetuning
+│   ├── models          # model components 
+└── └── pretraining     # modules for pretraining
+```
+
 ## Pre-training
 ```bash
-python scripts/main.py --config-name=pretrain
+python scripts/main.py --config-name=pretrain_tiny
 ```
 
 
 ## Fine-tuning
-### Science objective 1
-### Science objective 2
-### Science objective 3
+### Science objective 1: Dimming
 ```bash
-python scripts/main.py --config-name=so1
+python scripts/main.py --config-name=dimming_tiny
 ```
+### Science objective 2: TBD
+### Science objective 3: TBD
 
-## Inference
-```bash
-python scripts/main.py --config-name=deploy
-```
 
 ## Additional Documentation
-
+TODO
 
 ## Citation 
 ```bib
