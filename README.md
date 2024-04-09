@@ -15,7 +15,7 @@ SDO-FM is envisioned as a ‘multi-modal’ foundation model, integrating instru
 #### Repo structure
 ```bash
 ├── assets              # images for this readme
-├── experiments         # configuration files for different trails 
+├── experiments         # configuration files for different trials 
 ├── notebooks           # visualisation/testing ipynb
 ├── scripts             # entrypoint and highest level executors
 ├── sdofm               # python package
