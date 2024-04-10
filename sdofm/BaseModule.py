@@ -24,7 +24,7 @@ class BaseModule(pl.LightningModule):
         raise NotImplementedError
 
     def configure_optimizers(self):
-        match (self.optimiser_str):
+        match (self.optimiser):
             case "adam":
                 optimiser = torch.optim.Adam(
                     self.parameters(),

@@ -39,20 +39,7 @@ STD = [
 class PrithviEncoder(nn.Module):
     def __init__(
         self,
-        img_size=224,
-        patch_size=16,
-        num_frames=3,
-        tubelet_size=1,
-        in_chans=3,
-        embed_dim=1024,
-        depth=24,
-        num_heads=16,
-        decoder_embed_dim=512,
-        decoder_depth=8,
-        decoder_num_heads=16,
-        mlp_ratio=4.0,
-        norm_layer=nn.LayerNorm,
-        norm_pix_loss=False,
+        mae,
     ):
         super().__init__()
         # cfg.model.mae.num_frames = num_frames
@@ -65,23 +52,23 @@ class PrithviEncoder(nn.Module):
         # self.in_chans = in_chans
         # self.img_size = img_size
         # self.patch_size = cfg.model_args.patch_size
-        encoder = MaskedAutoencoderViT3D(
-            img_size,
-            patch_size,
-            num_frames,
-            tubelet_size,
-            in_chans,
-            embed_dim,
-            depth,
-            num_heads,
-            decoder_embed_dim,
-            decoder_depth,
-            decoder_num_heads,
-            mlp_ratio,
-            norm_layer,
-            norm_pix_loss,
-        )
-        self.encoder = encoder
+        # encoder = MaskedAutoencoderViT3D(
+        #     img_size,
+        #     patch_size,
+        #     num_frames,
+        #     tubelet_size,
+        #     in_chans,
+        #     embed_dim,
+        #     depth,
+        #     num_heads,
+        #     decoder_embed_dim,
+        #     decoder_depth,
+        #     decoder_num_heads,
+        #     mlp_ratio,
+        #     norm_layer,
+        #     norm_pix_loss,
+        # )
+        self.encoder = mae
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         # add a temporal dimension if num_frames = 1

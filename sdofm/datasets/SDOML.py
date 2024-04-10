@@ -125,9 +125,10 @@ class SDOMLDataset(Dataset):
             idx_row_element = self.aligndata.iloc[idx]
             idx_wavelength = idx_row_element[f"idx_{wavelength}"]
             year = str(idx_row_element.name.year)
-            aia_image_dict[wavelength] = self.aia_data[year][wavelength][
-                idx_wavelength, :, :
-            ]
+            img = self.aia_data[year][wavelength][idx_wavelength, :, :]
+            # TODO: DO IT PROPERLY AND REMOVE THIS
+            aia_image_dict[wavelength] = np.array((img, img, img))  # [:, 0, :, :]
+            # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
             if self.normalizations:
                 aia_image_dict[wavelength] -= self.normalizations["AIA"][wavelength][
                     "mean"

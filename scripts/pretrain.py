@@ -13,9 +13,9 @@ from sdofm.pretraining import MAE
 
 
 class Pretrainer(object):
-    def __init__(self, cfg):
+    def __init__(self, cfg, logger):
         self.cfg = cfg
-        self.trainer = None
+        self.logger = logger
 
     def run(self):
         print("\nPRE-TRAINING\n")
@@ -47,23 +47,25 @@ class Pretrainer(object):
         data_module.setup()
 
         model = MAE(
-            **self.cfg.model.prithvi.mae,
-            optimiser_str=self.cfg.model.opt.optimiser,
+            **self.cfg.model.mae,
+            optimiser=self.cfg.model.opt.optimiser,
             lr=self.cfg.model.opt.learning_rate,
             weight_decay=self.cfg.model.opt.weight_decay,
         )
 
         if self.cfg.experiment.distributed:
             trainer = pl.Trainer(
-                gpus=self.cfg.experiment.distributed.worldsize,
+                devices=self.cfg.experiment.distributed.world_size,
                 accelerator=self.cfg.experiment.accelerator,
                 max_epochs=self.cfg.model.opt.epochs,
                 precision=self.cfg.experiment.precision,
+                logger=self.logger,
             )
         else:
             trainer = pl.Trainer(
                 accelerator=self.cfg.experiment.accelerator,
                 max_epochs=self.cfg.model.opt.epochs,
+                logger=self.logger,
             )
         trainer.fit(model=model, datamodule=data_module)
         return trainer

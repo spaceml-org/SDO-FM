@@ -72,22 +72,30 @@ def main(cfg: DictConfig) -> None:
         log_model="all",
         # kwargs for wandb.init
         tags=cfg.experiment.wandb.tags,
-        notes=cfg.experimentw.wandb.notes,
-        group=cfg.experiment.wandb_group,
+        notes=cfg.experiment.wandb.notes,
+        group=cfg.experiment.wandb.group,
         save_code=True,
-        job_type=cfg.experiment.job_type,
+        job_type=cfg.experiment.wandb.job_type,
         config=flatten_dict(cfg),
     )
 
-    match cfg.experiment.task:
-        case "pretrain_mae":
-            from scripts.pretrain import pretrain_sdofm
+    match cfg.experiment.model:
+        case "mae":
+            from scripts.pretrain import Pretrainer
 
-            pretrain_sdofm(cfg)
-        case "evaluate_mae":
-            from scripts.pretrain import evaluate_sdofm
+            match cfg.experiment.task:
+                case "train":
+                    pretrainer = Pretrainer(cfg, logger=wandb_logger)
+                    pretrainer.run()
 
-            pass
+        case "autocalibration":
+            from scripts.pretrain import AutocalibrationFinetuner
+
+            match cfg.experiment.task:
+                case "train":
+                    finetuner = AutocalibrationFinetuner(cfg, logger=wandb_logger)
+                    finetuner.run()
+
         case _:
             raise NotImplementedError(
                 f"Experiment {cfg.experiment.task} not implemented"

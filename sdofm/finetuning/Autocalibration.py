@@ -9,6 +9,7 @@ from ..models import (
     Autocalibration13,
     ConvTransformerTokensToEmbeddingNeck,
     MaskedAutoencoderViT3D,
+    PrithviEncoder,
 )
 
 
@@ -87,7 +88,7 @@ class Autocalibration(BaseModule):
         super().__init__(*args, **kwargs)
 
         # BACKBONE
-        self.autoencoder = MaskedAutoencoderViT3D(
+        self.mae = MaskedAutoencoderViT3D(
             img_size,
             patch_size,
             num_frames,
@@ -104,9 +105,11 @@ class Autocalibration(BaseModule):
             norm_pix_loss,
         )
 
+        self.encoder = PrithviEncoder(self.mae)
+
         if freeze_encoder:
-            self.autoencoder.eval()
-            for param in self.autoencoder.parameters():
+            self.encoder.eval()
+            for param in self.encoder.parameters():
                 param.requires_grad = False
 
         num_tokens = img_size // patch_size
@@ -135,7 +138,18 @@ class Autocalibration(BaseModule):
                 raise NotImplementedError(f"Loss function {loss} not implemented")
 
     def training_step(self, batch, batch_idx):
-        x, y = batch
-        y_hat = self.model(x)
-        loss = self.loss_function(y_hat, y)
+        dimmed_img, dim_factor, orig_img = batch
+        x = self.encoder(dimmed_img)
+        # x_hat = self.autoencoder.unpatchify(x_hat)
+        y_hat = self.head(self.decoder(x))
+        loss = self.loss_function(y_hat, dim_factor)
+        self.log("train_loss", loss)
         return loss
+
+    def validation_step(self, batch, batch_idx):
+        dimmed_img, dim_factor, orig_img = batch
+        x = self.encoder(dimmed_img)
+        # x_hat = self.autoencoder.unpatchify(x_hat)
+        y_hat = self.head(self.decoder(x))
+        loss = self.loss_function(y_hat, dim_factor)
+        self.log("val_loss", loss)

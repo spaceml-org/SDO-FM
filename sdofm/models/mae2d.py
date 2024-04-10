@@ -273,7 +273,7 @@ class MaskedAutoencoderViT2D(nn.Module):
 
 
 def mae_vit_base_patch16_dec512d8b(**kwargs):
-    model = MaskedAutoencoderViT(
+    model = MaskedAutoencoderViT2D(
         patch_size=16,
         embed_dim=768,
         depth=12,
@@ -289,7 +289,7 @@ def mae_vit_base_patch16_dec512d8b(**kwargs):
 
 
 def mae_vit_large_patch16_dec512d8b(**kwargs):
-    model = MaskedAutoencoderViT(
+    model = MaskedAutoencoderViT2D(
         patch_size=16,
         embed_dim=1024,
         depth=24,
@@ -305,7 +305,7 @@ def mae_vit_large_patch16_dec512d8b(**kwargs):
 
 
 def mae_vit_huge_patch14_dec512d8b(**kwargs):
-    model = MaskedAutoencoderViT(
+    model = MaskedAutoencoderViT2D(
         patch_size=14,
         embed_dim=1280,
         depth=32,

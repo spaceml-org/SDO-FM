@@ -51,10 +51,11 @@ class PatchEmbed(nn.Module):
         self.norm = norm_layer(embed_dim) if norm_layer else nn.Identity()
 
     def forward(self, x):
-        B, C, T, H, W = x.shape
+        B, C, T, H, W = x.shape  # batch channels rgb height width
         x = self.proj(x)
+        # The output size is (B, N, D), where N=H*W/P/P, D is embid_dim
         if self.flatten:
-            x = x.flatten(2).transpose(1, 2)  # B,C,T,H,W -> B,C,L -> B,L,C
+            x = x.flatten(2).transpose(1, 2)  # B,C,T,H,W -> B,C,L=(T*H*W) -> B,L,C
         x = self.norm(x)
         return x
 

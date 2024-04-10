@@ -9,7 +9,7 @@ import wandb
 
 from sdofm import utils
 from sdofm.datasets import DimmedSDOMLDataModule
-from sdofm.pretraining import MAE
+from sdofm.finetuning import Autocalibration
 
 
 class AutocalibrationFinetuner(object):
@@ -20,7 +20,7 @@ class AutocalibrationFinetuner(object):
     def run(self):
         print("\nFINE TUNING\n")
 
-        data_module = DimmedSDOMLDataModule(
+        dimmed_data_module = DimmedSDOMLDataModule(
             hmi_path=None,
             aia_path=os.path.join(
                 self.cfg.data.sdoml.base_directory,
@@ -41,26 +41,28 @@ class AutocalibrationFinetuner(object):
                 self.cfg.data.sdoml.sub_directory.cache,
             ),
         )
-        data_module.setup()
+        dimmed_data_module.setup()
 
-        model = MAE(
-            **self.cfg.model.prithvi.mae,
-            optimiser_str=self.cfg.model.opt.optimiser,
+        model = Autocalibration(
+            **self.cfg.model.mae,
+            optimiser=self.cfg.model.opt.optimiser,
             lr=self.cfg.model.opt.learning_rate,
             weight_decay=self.cfg.model.opt.weight_decay,
         )
 
         if self.cfg.experiment.distributed:
             trainer = pl.Trainer(
-                gpus=self.cfg.experiment.distributed.worldsize,
+                devices=self.cfg.experiment.distributed.world_size,
                 accelerator=self.cfg.experiment.accelerator,
                 max_epochs=self.cfg.model.opt.epochs,
                 precision=self.cfg.experiment.precision,
+                logger=self.logger,
             )
         else:
             trainer = pl.Trainer(
                 accelerator=self.cfg.experiment.accelerator,
                 max_epochs=self.cfg.model.opt.epochs,
+                logger=self.logger,
             )
         trainer.fit(model=model, datamodule=data_module)
         return trainer

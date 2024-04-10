@@ -7,7 +7,7 @@ import torch.nn.functional as F
 
 from .. import utils
 from ..BaseModule import BaseModule
-from ..models import MaskedAutoencoderViT3D
+from ..models import MaskedAutoencoderViT3D, PrithviEncoder
 
 
 class MAE(BaseModule):
@@ -34,7 +34,7 @@ class MAE(BaseModule):
     ):
         super().__init__(*args, **kwargs)
 
-        self.encoder_decoder = MaskedAutoencoderViT3D(
+        self.autoencoder = MaskedAutoencoderViT3D(
             img_size,
             patch_size,
             num_frames,
@@ -50,22 +50,20 @@ class MAE(BaseModule):
             norm_layer,
             norm_pix_loss,
         )
+        # self.autoencoder = PrithviEncoder(self.mae)
 
     def training_step(self, batch, batch_idx):
-        raise NotImplementedError
         # training_step defines the train loop.
-        x, y = batch
-        x = x.view(x.size(0), -1)
-        # z = self.encoder(x)
-        # x_hat = self.decoder(z)
-        x_hat = self.encoder_decoder(x)
+        x = batch
+        loss, x_hat, mask = self.autoencoder(x)
+        x_hat = self.autoencoder.unpatchify(x_hat)
         loss = F.mse_loss(x_hat, x)
         self.log("train_loss", loss)
         return loss
 
     def validation_step(self, batch, batch_idx):
-        x, y = batch
-        x = x.view(x.size(0), -1)
-        x_hat = self.encoder_decoder(x)
+        x = batch
+        loss, x_hat, mask = self.autoencoder(x)
+        x_hat = self.autoencoder.unpatchify(x_hat)
         loss = F.mse_loss(x_hat, x)
         self.log("val_loss", loss)

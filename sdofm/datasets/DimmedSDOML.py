@@ -54,7 +54,7 @@ class DimmedSDOMLDataset(SDOMLDataset):
         self.num_channels = len(self.wavelengths)
 
     def __getitem__(self, idx):
-        orig_img = super().__getitem__(idx)
+        orig_img = torch.Tensor(super().__getitem__(idx))
 
         if self.threshold_black:
             orig_img[orig_img <= self.threshold_black_value] = 0
