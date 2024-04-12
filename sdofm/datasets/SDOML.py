@@ -1,4 +1,4 @@
-# From https://github.com/FrontierDevelopmentLab/2023-FDL-X-ARD-EVE/blob/main/src/irradiance/utilities/data_loader.py
+# Adapted to be general from https://github.com/FrontierDevelopmentLab/2023-FDL-X-ARD-EVE/blob/main/src/irradiance/utilities/data_loader.py
 
 import json
 import os
@@ -16,9 +16,10 @@ from dask.diagnostics import ProgressBar
 from torch.utils.data import Dataset
 from tqdm import tqdm
 
+from ..constants import ALL_COMPONENTS, ALL_IONS, ALL_WAVELENGTHS
 
-class ZarrIrradianceDatasetHMI(Dataset):
 
+class SDOMLDataset(Dataset):
     def __init__(
         self,
         aligndata,
@@ -51,19 +52,26 @@ class ZarrIrradianceDatasetHMI(Dataset):
         self.eve_data = eve_data
         self.hmi_data = hmi_data
 
+        # Select alls
+        self.components = components
+        self.wavelengths = wavelengths
+        self.ions = ions
+        if self.components is None:
+            self.components = ALL_COMPONENTS
+        if self.wavelengths is None:
+            self.wavelengths = ALL_WAVELENGTHS
+        if self.ions is None:
+            self.ions = ALL_IONS
+
         # Loading data
         # HMI
-        self.components = components
         if self.hmi_data is not None:
             self.components.sort()
         # AIA
-        self.wavelengths = wavelengths
         if self.aia_data is not None:
             self.wavelengths.sort()
         # EVE
-        self.ions = ions
         self.ions.sort()
-
         self.cadence = freq
         self.months = months
 
@@ -79,24 +87,37 @@ class ZarrIrradianceDatasetHMI(Dataset):
 
     def __getitem__(self, idx):
 
-        if self.aia_data is not None and self.hmi_data is None:
-            aia_image = self.get_aia_image(idx)
-            eve_data = self.get_eve(idx)
-            return aia_image, eve_data
+        image_stack = None
+        if self.aia_data is not None:
+            image_stack = self.get_aia_image(idx)
 
-        elif self.hmi_data is not None and self.aia_data is None:
-            hmi_image = self.get_hmi_image(idx)
-            eve_data = self.get_eve(idx)
-            return hmi_image, eve_data
+        if self.hmi_data is not None:
+            image_stack = np.concatenate((image_stack, self.get_hmi_image(idx)), axis=0)
 
+        if self.eve_data is not None:
+            eve_data = self.get_eve(idx)
+            return image_stack, eve_data
         else:
-            aia_image = self.get_aia_image(idx)
-            eve_data = self.get_eve(idx)
-            hmi_image = self.get_hmi_image(idx)
+            return image_stack
 
-            image_stack = np.concatenate((hmi_image, aia_image), axis=0)
+        # if self.aia_data is not None and self.hmi_data is None:
+        #     aia_image = self.get_aia_image(idx)
+        #     eve_data = self.get_eve(idx)
+        #     return aia_image, eve_data
 
-        return image_stack, eve_data
+        # elif self.hmi_data is not None and self.aia_data is None:
+        #     hmi_image = self.get_hmi_image(idx)
+        #     eve_data = self.get_eve(idx)
+        #     return hmi_image, eve_data
+
+        # else:
+        #     aia_image = self.get_aia_image(idx)
+        #     eve_data = self.get_eve(idx)
+        #     hmi_image = self.get_hmi_image(idx)
+
+        #     image_stack = np.concatenate((hmi_image, aia_image), axis=0)
+
+        # return image_stack, eve_data
 
     def get_aia_image(self, idx):
         aia_image_dict = {}
@@ -104,9 +125,10 @@ class ZarrIrradianceDatasetHMI(Dataset):
             idx_row_element = self.aligndata.iloc[idx]
             idx_wavelength = idx_row_element[f"idx_{wavelength}"]
             year = str(idx_row_element.name.year)
-            aia_image_dict[wavelength] = self.aia_data[year][wavelength][
-                idx_wavelength, :, :
-            ]
+            img = self.aia_data[year][wavelength][idx_wavelength, :, :]
+            # TODO: DO IT PROPERLY AND REMOVE THIS
+            aia_image_dict[wavelength] = np.array((img, img, img))  # [:, 0, :, :]
+            # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
             if self.normalizations:
                 aia_image_dict[wavelength] -= self.normalizations["AIA"][wavelength][
                     "mean"
@@ -123,7 +145,7 @@ class ZarrIrradianceDatasetHMI(Dataset):
         eve_ion_dict = {}
         for ion in self.ions:
             idx_eve = self.aligndata.iloc[idx]["idx_eve"]
-            eve_ion_dict[ion] = self.eve_data["MEGS-A"][ion][idx_eve]
+            eve_ion_dict[ion] = self.eve_data[ion][idx_eve]
             if self.normalizations:
                 eve_ion_dict[ion] -= self.normalizations["EVE"][ion]["mean"]
                 eve_ion_dict[ion] /= self.normalizations["EVE"][ion]["std"]
@@ -160,7 +182,7 @@ class ZarrIrradianceDatasetHMI(Dataset):
         return output
 
 
-class ZarrIrradianceDataModuleHMI(pl.LightningDataModule):
+class SDOMLDataModule(pl.LightningDataModule):
     """Loads paired data samples of AIA EUV images and EVE irradiance measures.
 
     Note: Input data needs to be paired.
@@ -208,18 +230,24 @@ class ZarrIrradianceDataModuleHMI(pl.LightningDataModule):
         self.cache_dir = cache_dir
         self.isAIA = True if self.aia_path is not None else False
         self.isHMI = True if self.hmi_path is not None else False
+        self.isEVE = True if self.eve_path is not None else False
 
+        # Select alls
         self.components = components
-        if self.isHMI:
-            self.components.sort()
         self.wavelengths = wavelengths
-        if self.isAIA:
-            self.wavelengths.sort()
         self.ions = ions
-        self.ions.sort()
+        if self.components is None:
+            self.components = ALL_COMPONENTS
+        if self.wavelengths is None:
+            self.wavelengths = ALL_WAVELENGTHS
+        if self.ions is None:
+            self.ions = ALL_IONS
 
-        # EVE is always present (target values)
-        self.eve_data = zarr.group(zarr.DirectoryStore(self.eve_path))
+        # checking if EVE is in the dataset
+        if self.isEVE:
+            self.eve_data = zarr.group(zarr.DirectoryStore(self.eve_path))
+        else:
+            self.eve_data = None
 
         # checking if AIA is in the dataset
         if self.isAIA:
@@ -249,28 +277,29 @@ class ZarrIrradianceDataModuleHMI(pl.LightningDataModule):
             ]
 
         # Cache filenames
-        if len(self.ions) == 38:
-            ions_id = "EVE_FULL"
-        else:
-            ions_id = "_".join(ions).replace(" ", "_")
+        ids = []
+        if self.isEVE:
+            if len(self.ions) == 39:
+                ions_id = "EVE_FULL"
+            else:
+                ions_id = "_".join(ions).replace(" ", "_")
+            ids.append(ions_id)
 
         if self.isAIA:
             if len(self.wavelengths) == 9:
                 wavelength_id = "AIA_FULL"
             elif len(self.wavelengths) > 0 and len(self.wavelengths) < 9:
                 wavelength_id = "_".join(self.wavelengths)
-        else:
-            wavelength_id = ""
+            ids.append(wavelength_id)
 
         if self.isHMI:
             if len(self.components) == 3:
                 component_id = "HMI_FULL"
             elif len(self.components) > 0 and len(self.components) < 3:
                 component_id = "_".join(self.components)
-        else:
-            component_id = ""
+            ids.append(component_id)
 
-        self.cache_id = f"{component_id}_{wavelength_id}_{ions_id}_{self.cadence}"
+        self.cache_id = f"{'_'.join(ids)}_{self.cadence}"
 
         if self.aia_path is not None:
             if "small" in self.aia_path:
@@ -308,16 +337,15 @@ class ZarrIrradianceDataModuleHMI(pl.LightningDataModule):
         print(f"\nData alignment calculation begin:")
         print("-" * 50)
 
-        if self.isAIA:
+        join_series = None
 
-            # AIA
+        # AIA
+        if self.isAIA:
             print(f"Aligning AIA data")
 
             for i, wavelength in enumerate(self.wavelengths):
                 print(f"Aligning AIA data for wavelength: {wavelength}")
-                for j, year in enumerate(
-                    tqdm((self.training_years))
-                ):  # EVE data only goes up to 2014
+                for j, year in enumerate(tqdm((self.training_years))):
                     aia_channel = self.aia_data[year][wavelength]
 
                     # get observation time
@@ -363,7 +391,8 @@ class ZarrIrradianceDataModuleHMI(pl.LightningDataModule):
                 )  # removing potential duplicates derived by rounding
                 df_t_obs_aia.set_index("Time", inplace=True)
 
-                if i == 0:
+                # if i == 0:
+                if join_series is None:
                     join_series = df_t_obs_aia
                 else:
                     join_series = join_series.join(df_t_obs_aia, how="inner")
@@ -372,11 +401,9 @@ class ZarrIrradianceDataModuleHMI(pl.LightningDataModule):
 
         # ----------------------------------------------------------------------------------------------------------------------------------
 
+        # HMI
         if self.isHMI:
-
-            # HMI
             print(f"Aligning HMI data")
-
             print(f"Aligning HMI data for component: {self.components[0]}")
             for j, year in enumerate(
                 tqdm((self.training_years))
@@ -435,9 +462,8 @@ class ZarrIrradianceDataModuleHMI(pl.LightningDataModule):
                 )  # removing potential duplicates derived by rounding
                 df_t_obs_hmi.set_index("Time", inplace=True)
 
-            if self.isAIA:
+            if join_series is None:
                 join_series = join_series.join(df_t_obs_hmi, how="inner")
-
             else:
                 join_series = df_t_obs_hmi
 
@@ -446,29 +472,38 @@ class ZarrIrradianceDataModuleHMI(pl.LightningDataModule):
         # ---------------------------------------------------------------------------------------------------------------------------------------
 
         # EVE
-        print(f"Aligning EVE data")
-        df_t_eve = pd.DataFrame(
-            {
-                "Time": pd.to_datetime(self.eve_data["MEGS-A"]["Time"][:]),
-                "idx_eve": np.arange(0, len(self.eve_data["MEGS-A"]["Time"])),
-            }
-        )
-        df_t_eve["Time"] = pd.to_datetime(df_t_eve["Time"]).dt.round(self.cadence)
-        df_t_obs_eve = df_t_eve.drop_duplicates(subset="Time", keep="first").set_index(
-            "Time"
-        )
-        join_series = join_series.join(df_t_obs_eve, how="inner")
+        if self.isEVE:
+            print(f"Aligning EVE data")
+            df_t_eve = pd.DataFrame(
+                {
+                    "Time": pd.to_datetime(self.eve_data["Time"][:]),
+                    "idx_eve": np.arange(0, len(self.eve_data["Time"])),
+                }
+            )
+            df_t_eve["Time"] = pd.to_datetime(df_t_eve["Time"]).dt.round(self.cadence)
+            df_t_obs_eve = df_t_eve.drop_duplicates(
+                subset="Time", keep="first"
+            ).set_index("Time")
 
-        # remove missing eve data (missing values are labeled with negative values)
-        for ion in self.ions:
-            ion_data = self.eve_data["MEGS-A"][ion][:]
-            join_series = join_series.loc[ion_data[join_series["idx_eve"]] > 0, :]
+            if join_series is None:
+                join_series = df_t_obs_eve
+            else:
+                join_series = join_series.join(df_t_obs_eve, how="inner")
+
+            # remove missing eve data (missing values are labeled with negative values)
+            for ion in self.ions:
+                ion_data = self.eve_data[ion][:]
+                join_series = join_series.loc[ion_data[join_series["idx_eve"]] > 0, :]
+
+        if join_series is None:
+            raise ValueError("No data found for alignment.")
 
         join_series.sort_index(inplace=True)
 
         print("")
         print("#" * 50)
         print(f"[*] Total Alignment Completed with {join_series.shape[0]} Samples.")
+        print(f"[*] Saving alignment data to {self.index_cache_filename}.")
         print("#" * 50)
         print("")
         # creating csv dataset
@@ -491,7 +526,8 @@ class ZarrIrradianceDataModuleHMI(pl.LightningDataModule):
             normalizations_align.index.month.isin(self.train_months)
         ]
 
-        normalizations["EVE"] = self.__calc_eve_normalizations(normalizations_align)
+        if self.isEVE:
+            normalizations["EVE"] = self.__calc_eve_normalizations(normalizations_align)
 
         if self.isAIA:
             normalizations["AIA"] = self.__calc_aia_normalizations(normalizations_align)
@@ -512,9 +548,7 @@ class ZarrIrradianceDataModuleHMI(pl.LightningDataModule):
         normalizations_eve = {}
         for ion in self.ions:
             # Note that selecting on idx normalizations_align['idx_eve'] removes negative values from EVE data.
-            channel_data = self.eve_data["MEGS-A"][ion][
-                normalizations_align["idx_eve"]
-            ][:]
+            channel_data = self.eve_data[ion][normalizations_align["idx_eve"]][:]
             normalizations_eve[ion] = {}
             normalizations_eve[ion]["count"] = channel_data.shape[0]
             normalizations_eve[ion]["sum"] = channel_data.sum()
@@ -645,7 +679,7 @@ class ZarrIrradianceDataModuleHMI(pl.LightningDataModule):
 
     def setup(self, stage=None):
 
-        self.train_ds = ZarrIrradianceDatasetHMI(
+        self.train_ds = SDOMLDataset(
             self.aligndata,
             self.hmi_data,
             self.aia_data,
@@ -658,7 +692,7 @@ class ZarrIrradianceDataModuleHMI(pl.LightningDataModule):
             normalizations=self.normalizations,
         )
 
-        self.valid_ds = ZarrIrradianceDatasetHMI(
+        self.valid_ds = SDOMLDataset(
             self.aligndata,
             self.hmi_data,
             self.aia_data,
@@ -671,7 +705,7 @@ class ZarrIrradianceDataModuleHMI(pl.LightningDataModule):
             normalizations=self.normalizations,
         )
 
-        self.test_ds = ZarrIrradianceDatasetHMI(
+        self.test_ds = SDOMLDataset(
             self.aligndata,
             self.hmi_data,
             self.aia_data,

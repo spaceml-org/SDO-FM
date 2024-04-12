@@ -1,10 +1,12 @@
 # THESE NEED TO BE VERSION LOCKED (at point of release)
+# $ pip install git+https://github.com/qubvel/segmentation_models.pytorch or PyPi version
 wandb
 omegaconf
 hydra-core
 dask
 zarr
 pandas
-# $ pip install git+https://github.com/qubvel/segmentation_models.pytorch or PyPi version:
 segmentation-models-pytorch 
 einops
+lightning
+scipy

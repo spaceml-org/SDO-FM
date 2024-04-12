@@ -12,6 +12,19 @@
 
 SDO-FM is envisioned as a ‘multi-modal’ foundation model, integrating instruments on SDO; AIA, EVE, HMI. We will be looking to experiment with the scope multi-modal and choose datasets that are most complimentary to the task. The project will also investigate if the Foundation model can either replicate or leverage [SDOML](https://sdoml.org) (the data product developed in FDL.AI). 
 
+#### Repo structure
+```bash
+├── assets              # images for this readme
+├── experiments         # configuration files for different trials 
+├── notebooks           # visualisation/testing ipynb
+├── scripts             # entrypoint and highest level executors
+├── sdofm               # python package
+│   ├── datasets        # dataloaders/modules
+│   ├── finetuning      # modules for finetuning
+│   ├── models          # model components 
+└── └── pretraining     # modules for pretraining
+```
+
 ## Setup
 ### Installation
 SDO-FM can be installed locally by directly installing the package in this repository.
@@ -46,25 +59,21 @@ Processes for continually updating the data until the present day.
 
 ## Pre-training
 ```bash
-python scripts/main.py --config-name=pretrain
+python scripts/main.py --config-name=pretrain_tiny
 ```
 
 
 ## Fine-tuning
-### Science objective 1
-### Science objective 2
-### Science objective 3
+### Science objective 1: Dimming
 ```bash
-python scripts/main.py --config-name=so1
+python scripts/main.py --config-name=dimming_tiny
 ```
+### Science objective 2: TBD
+### Science objective 3: TBD
 
-## Inference
-```bash
-python scripts/main.py --config-name=deploy
-```
 
 ## Additional Documentation
-
+TODO
 
 ## Citation 
 ```bib

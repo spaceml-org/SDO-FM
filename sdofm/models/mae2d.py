@@ -1,134 +1,30 @@
-"""Modified from https://huggingface.co/ibm-nasa-geospatial/Prithvi-100M/blob/main/Prithvi.py"""
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+# All rights reserved.
 
-import numpy as np
+# This source code is licensed under the license found in the
+# LICENSE file in the root directory of this source tree.
+# --------------------------------------------------------
+# References:
+# timm: https://github.com/rwightman/pytorch-image-models/tree/master/timm
+# DeiT: https://github.com/facebookresearch/deit
+# --------------------------------------------------------
+
+from functools import partial
+
 import torch
 import torch.nn as nn
-from einops import rearrange
-from timm.layers import to_2tuple
-from timm.models.vision_transformer import Block
+from timm.models.vision_transformer import Block, PatchEmbed
+
+from ..utils import get_2d_sincos_pos_embed
 
 
-def get_1d_sincos_pos_embed_from_grid(embed_dim, pos):
-    """
-    embed_dim: output dimension for each position
-    pos: a list of positions to be encoded: size (M,)
-    out: (M, D)
-    """
-    assert embed_dim % 2 == 0
-    omega = np.arange(embed_dim // 2, dtype=np.float32)
-    omega /= embed_dim / 2.0
-    omega = 1.0 / 10000**omega  # (D/2,)
-
-    pos = pos.reshape(-1)  # (M,)
-    out = np.einsum("m,d->md", pos, omega)  # (M, D/2), outer product
-
-    emb_sin = np.sin(out)  # (M, D/2)
-    emb_cos = np.cos(out)  # (M, D/2)
-
-    emb = np.concatenate([emb_sin, emb_cos], axis=1)  # (M, D)
-    return emb
-
-
-def get_2d_sincos_pos_embed_from_grid(embed_dim, grid):
-    assert embed_dim % 2 == 0
-
-    # use half of dimensions to encode grid_h
-    emb_h = get_1d_sincos_pos_embed_from_grid(embed_dim // 2, grid[0])  # (H*W, D/2)
-    emb_w = get_1d_sincos_pos_embed_from_grid(embed_dim // 2, grid[1])  # (H*W, D/2)
-
-    emb = np.concatenate([emb_h, emb_w], axis=1)  # (H*W, D)
-    return emb
-
-
-def get_3d_sincos_pos_embed(embed_dim, grid_size, cls_token=False):
-    """
-    grid_size: 3d tuple of grid size: t, h, w
-    return:
-    pos_embed: L, D
-    """
-
-    assert embed_dim % 16 == 0
-
-    t_size, h_size, w_size = grid_size
-
-    w_embed_dim = embed_dim // 16 * 6
-    h_embed_dim = embed_dim // 16 * 6
-    t_embed_dim = embed_dim // 16 * 4
-
-    w_pos_embed = get_1d_sincos_pos_embed_from_grid(w_embed_dim, np.arange(w_size))
-    h_pos_embed = get_1d_sincos_pos_embed_from_grid(h_embed_dim, np.arange(h_size))
-    t_pos_embed = get_1d_sincos_pos_embed_from_grid(t_embed_dim, np.arange(t_size))
-
-    w_pos_embed = np.tile(w_pos_embed, (t_size * h_size, 1))
-    h_pos_embed = np.tile(np.repeat(h_pos_embed, w_size, axis=0), (t_size, 1))
-    t_pos_embed = np.repeat(t_pos_embed, h_size * w_size, axis=0)
-
-    pos_embed = np.concatenate((w_pos_embed, h_pos_embed, t_pos_embed), axis=1)
-
-    if cls_token:
-        pos_embed = np.concatenate([np.zeros([1, embed_dim]), pos_embed], axis=0)
-    return pos_embed
-
-
-class PatchEmbed(nn.Module):
-    """Frames of 2D Images to Patch Embedding
-    The 3D version of timm.models.vision_transformer.PatchEmbed
-    """
-
-    def __init__(
-        self,
-        img_size=224,
-        patch_size=16,
-        num_frames=3,
-        tubelet_size=1,
-        in_chans=3,
-        embed_dim=768,
-        norm_layer=None,
-        flatten=True,
-        bias=True,
-    ):
-        super().__init__()
-        img_size = to_2tuple(img_size)
-        patch_size = to_2tuple(patch_size)
-        self.img_size = img_size
-        self.patch_size = patch_size
-        self.num_frames = num_frames
-        self.tubelet_size = tubelet_size
-        self.grid_size = (
-            num_frames // tubelet_size,
-            img_size[0] // patch_size[0],
-            img_size[1] // patch_size[1],
-        )
-        self.num_patches = self.grid_size[0] * self.grid_size[1] * self.grid_size[2]
-        self.flatten = flatten
-
-        self.proj = nn.Conv3d(
-            in_chans,
-            embed_dim,
-            kernel_size=(tubelet_size, patch_size[0], patch_size[1]),
-            stride=(tubelet_size, patch_size[0], patch_size[1]),
-            bias=bias,
-        )
-        self.norm = norm_layer(embed_dim) if norm_layer else nn.Identity()
-
-    def forward(self, x):
-        B, C, T, H, W = x.shape
-        x = self.proj(x)
-        if self.flatten:
-            x = x.flatten(2).transpose(1, 2)  # B,C,T,H,W -> B,C,L -> B,L,C
-        x = self.norm(x)
-        return x
-
-
-class MaskedAutoencoderViT(nn.Module):
+class MaskedAutoencoderViT2D(nn.Module):
     """Masked Autoencoder with VisionTransformer backbone"""
 
     def __init__(
         self,
         img_size=224,
         patch_size=16,
-        num_frames=3,
-        tubelet_size=1,
         in_chans=3,
         embed_dim=1024,
         depth=24,
@@ -144,9 +40,7 @@ class MaskedAutoencoderViT(nn.Module):
 
         # --------------------------------------------------------------------------
         # MAE encoder specifics
-        self.patch_embed = PatchEmbed(
-            img_size, patch_size, num_frames, tubelet_size, in_chans, embed_dim
-        )
+        self.patch_embed = PatchEmbed(img_size, patch_size, in_chans, embed_dim)
         num_patches = self.patch_embed.num_patches
 
         self.cls_token = nn.Parameter(torch.zeros(1, 1, embed_dim))
@@ -161,6 +55,7 @@ class MaskedAutoencoderViT(nn.Module):
                     num_heads,
                     mlp_ratio,
                     qkv_bias=True,
+                    qk_scale=None,
                     norm_layer=norm_layer,
                 )
                 for i in range(depth)
@@ -186,6 +81,7 @@ class MaskedAutoencoderViT(nn.Module):
                     decoder_num_heads,
                     mlp_ratio,
                     qkv_bias=True,
+                    qk_scale=None,
                     norm_layer=norm_layer,
                 )
                 for i in range(decoder_depth)
@@ -194,9 +90,7 @@ class MaskedAutoencoderViT(nn.Module):
 
         self.decoder_norm = norm_layer(decoder_embed_dim)
         self.decoder_pred = nn.Linear(
-            decoder_embed_dim,
-            tubelet_size * patch_size * patch_size * in_chans,
-            bias=True,
+            decoder_embed_dim, patch_size**2 * in_chans, bias=True
         )  # decoder to patch
         # --------------------------------------------------------------------------
 
@@ -207,13 +101,17 @@ class MaskedAutoencoderViT(nn.Module):
     def initialize_weights(self):
         # initialization
         # initialize (and freeze) pos_embed by sin-cos embedding
-        pos_embed = get_3d_sincos_pos_embed(
-            self.pos_embed.shape[-1], self.patch_embed.grid_size, cls_token=True
+        pos_embed = get_2d_sincos_pos_embed(
+            self.pos_embed.shape[-1],
+            int(self.patch_embed.num_patches**0.5),
+            cls_token=True,
         )
         self.pos_embed.data.copy_(torch.from_numpy(pos_embed).float().unsqueeze(0))
 
-        decoder_pos_embed = get_3d_sincos_pos_embed(
-            self.decoder_pos_embed.shape[-1], self.patch_embed.grid_size, cls_token=True
+        decoder_pos_embed = get_2d_sincos_pos_embed(
+            self.decoder_pos_embed.shape[-1],
+            int(self.patch_embed.num_patches**0.5),
+            cls_token=True,
         )
         self.decoder_pos_embed.data.copy_(
             torch.from_numpy(decoder_pos_embed).float().unsqueeze(0)
@@ -242,34 +140,30 @@ class MaskedAutoencoderViT(nn.Module):
 
     def patchify(self, imgs):
         """
-        imgs: B, C, T, H, W
-        x: B, L, D
+        imgs: (N, 3, H, W)
+        x: (N, L, patch_size**2 *3)
         """
         p = self.patch_embed.patch_size[0]
-        tub = self.patch_embed.tubelet_size
-        x = rearrange(
-            imgs, "b c (t tub) (h p) (w q) -> b (t h w) (tub p q c)", tub=tub, p=p, q=p
-        )
+        assert imgs.shape[2] == imgs.shape[3] and imgs.shape[2] % p == 0
 
+        h = w = imgs.shape[2] // p
+        x = imgs.reshape(shape=(imgs.shape[0], 3, h, p, w, p))
+        x = torch.einsum("nchpwq->nhwpqc", x)
+        x = x.reshape(shape=(imgs.shape[0], h * w, p**2 * 3))
         return x
 
     def unpatchify(self, x):
         """
-        x: B, L, D
-        imgs: B, C, T, H, W
+        x: (N, L, patch_size**2 *3)
+        imgs: (N, 3, H, W)
         """
         p = self.patch_embed.patch_size[0]
-        num_p = self.patch_embed.img_size[0] // p
-        tub = self.patch_embed.tubelet_size
-        imgs = rearrange(
-            x,
-            "b (t h w) (tub p q c) -> b c (t tub) (h p) (w q)",
-            h=num_p,
-            w=num_p,
-            tub=tub,
-            p=p,
-            q=p,
-        )
+        h = w = int(x.shape[1] ** 0.5)
+        assert h * w == x.shape[1]
+
+        x = x.reshape(shape=(x.shape[0], h, w, p, p, 3))
+        x = torch.einsum("nhwpqc->nchpwq", x)
+        imgs = x.reshape(shape=(x.shape[0], 3, h * p, h * p))
         return imgs
 
     def random_masking(self, x, mask_ratio):
@@ -355,10 +249,9 @@ class MaskedAutoencoderViT(nn.Module):
 
     def forward_loss(self, imgs, pred, mask):
         """
-        imgs: B, C, T, H, W
-        target: B, L, D
-        pred: B, L, D
-        mask: B, L. 0 is keep, 1 is remove,
+        imgs: [N, 3, H, W]
+        pred: [N, L, p*p*3]
+        mask: [N, L], 0 is keep, 1 is remove,
         """
         target = self.patchify(imgs)
         if self.norm_pix_loss:
@@ -374,53 +267,54 @@ class MaskedAutoencoderViT(nn.Module):
 
     def forward(self, imgs, mask_ratio=0.75):
         latent, mask, ids_restore = self.forward_encoder(imgs, mask_ratio)
-        pred = self.forward_decoder(latent, ids_restore)
+        pred = self.forward_decoder(latent, ids_restore)  # [N, L, p*p*3]
         loss = self.forward_loss(imgs, pred, mask)
         return loss, pred, mask
 
-    def get_intermediate_layers(
-        self,
-        x: torch.Tensor,
-        n: list[int],
-        mask_ratio: float = 0.0,
-        reshape: bool = True,
-        norm: bool = False,
-    ):
-        """Modified from timm.VisionTransformer.get_intermediate_layers"""
-        # embed patches
-        x = self.patch_embed(x)
 
-        # add pos embed w/o cls token
-        x = x + self.pos_embed[:, 1:, :]
+def mae_vit_base_patch16_dec512d8b(**kwargs):
+    model = MaskedAutoencoderViT2D(
+        patch_size=16,
+        embed_dim=768,
+        depth=12,
+        num_heads=12,
+        decoder_embed_dim=512,
+        decoder_depth=8,
+        decoder_num_heads=16,
+        mlp_ratio=4,
+        norm_layer=partial(nn.LayerNorm, eps=1e-6),
+        **kwargs
+    )
+    return model
 
-        # masking: length -> length * mask_ratio
-        x, _, _ = self.random_masking(x, mask_ratio)
 
-        # append cls token
-        cls_token = self.cls_token + self.pos_embed[:, :1, :]
-        cls_tokens = cls_token.expand(x.shape[0], -1, -1)
-        x = torch.cat((cls_tokens, x), dim=1)
+def mae_vit_large_patch16_dec512d8b(**kwargs):
+    model = MaskedAutoencoderViT2D(
+        patch_size=16,
+        embed_dim=1024,
+        depth=24,
+        num_heads=16,
+        decoder_embed_dim=512,
+        decoder_depth=8,
+        decoder_num_heads=16,
+        mlp_ratio=4,
+        norm_layer=partial(nn.LayerNorm, eps=1e-6),
+        **kwargs
+    )
+    return model
 
-        # apply Transformer blocks
-        features = [x]
-        for blk in self.blocks:
-            x = blk(x)
-            features.append(x)
 
-        # Remove cls token from intermediate features
-        features = [feat[:, 1:, :] for feat in features]
-
-        if norm:
-            features = [self.norm(out) for out in features]
-
-        if reshape:
-            grid_size = self.patch_embed.grid_size
-            features = [
-                out.reshape(x.shape[0], grid_size[1], grid_size[2], -1)
-                .permute(0, 3, 1, 2)
-                .contiguous()
-                for out in features
-            ]
-
-        features = [features[i] for i in n]
-        return features
+def mae_vit_huge_patch14_dec512d8b(**kwargs):
+    model = MaskedAutoencoderViT2D(
+        patch_size=14,
+        embed_dim=1280,
+        depth=32,
+        num_heads=16,
+        decoder_embed_dim=512,
+        decoder_depth=8,
+        decoder_num_heads=16,
+        mlp_ratio=4,
+        norm_layer=partial(nn.LayerNorm, eps=1e-6),
+        **kwargs
+    )
+    return model

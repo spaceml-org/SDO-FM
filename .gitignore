@@ -8,11 +8,7 @@ output
 
 # large files
 *.pkl
-notebooks/scratchpickel2.pkl
-notebooks/NaBH4_log2.txt
-notebooks/log.txt
-notebooks/old/params.csv
-notebooks/scratchpickel.pkl
+notebooks/lightning_logs
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
