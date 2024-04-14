@@ -42,20 +42,11 @@ CLI overrides are still possible with this selection but be aware of some shells
 python scripts/main.py --config-name=default experiment.seed=37
 ```
 
-### Data
-Since its launch in 2010, NASA’s Solar Dynamics Observatory (SDO) [Pesnell et al. 2012](https://ui.adsabs.harvard.edu/link_gateway/2012SoPh..275....3P/doi:10.1007/s11207-011-9841-3) has continuously monitored Sun’s activity, delivering a wealth of valuable scientific data for heliophysics researchers with the use of three instruments:
+### Datasets
 
-- The Atmospheric Imaging Assembly (AIA) [Lemen et al. 2012](https://ui.adsabs.harvard.edu/link_gateway/2012SoPh..275...17L/doi:10.1007/s11207-011-9776-8), which captures 4096 x 4096 resolution images (with 0.6 arcsecond pixel size) of the full Sun in two ultraviolet (centered at 1600, and 1700 Å), seven extreme ultraviolet (EUV) centered at 94, 131, 171, 193, 211, 304, and 335 Å, and one visible (centered at 4500 Å) wavelength band.
-- The Helioseismic and Magnetic Imager (HMI) [Schou et al. 2012](https://ui.adsabs.harvard.edu/link_gateway/2012SoPh..275..229S/doi:10.1007/s11207-011-9842-2) captures visible wavelength filtergrams of the full Sun at 4096 x 4096 resolution (a pixel size of 0.5 arcsecond), which are then processed into a number of data products, including photospheric Dopplergrams, line-of-sight magnetograms, and vector magnetograms [Hoeksema et al. 2014](https://ui.adsabs.harvard.edu/link_gateway/2014SoPh..289.3483H/doi:10.1007/s11207-014-0516-8).
- - The EUV Variability Experiment (EVE) [Woods et al. 2012](https://ui.adsabs.harvard.edu/link_gateway/2012SoPh..275..115W/doi:10.1007/s11207-009-9487-6) monitors the solar EUV spectral irradiance from 1 to 1050 Å. This is done by utilizing multiple EUV Grating Spectrographs (MEGS) that disperse EUV light from the full disk of the Sun and its corona onto a 1024 x 2048 charge coupled device (CCD).
-
-#### The SDO ML Dataset
-SDO for Machine Learning is available from [sdoml.org](https://sdoml.org). The SDO ML Dataset (covering 2010 - 2023) was originally published as [Galvez et al. 2019](https://iopscience.iop.org/article/10.3847/1538-4365/ab1005), and is hosted on the Stanford Digital Repository in Numpy’s compressed array format (.npz).
-
-In version 2.0, we present an update to the work outlined in [Galvez et al. 2019](https://iopscience.iop.org/article/10.3847/1538-4365/ab1005), in which the full dataset has been converted to cloud friendly Zarr (.zarr) format. In addition, SDO/AIA data has been updated to account for a change in calibration after 2019. In addtion to the change in calibration, this updated format includes:
-
-FITS header/keyword information (such as observation time, and exposure time).
-Processes for continually updating the data until the present day.
+| Name 	| Description 	| Granularity & Source 	|
+|---	|---	|---	|
+|  NASA’s Solar Dynamics Observatory (SDO) [Pesnell et al. 2012](https://ui.adsabs.harvard.edu/link_gateway/2012SoPh..275....3P/doi:10.1007/s11207-011-9841-3)  | Three instruments:<br><ul><li>Atmospheric Imaging Assembly (AIA) 2 ultraviolet, 1600 & 1700 Å 7 extreme ultraviolet, 94, 131, 171, 193, 211, 304, and 335 Å.</li><li>Helioseismic and Magnetic Imager (HMI) - visible filtergrams processed into: photospheric Dopplergrams line-of-sight magnetograms vector magnetograms.</li><li>EUV Variability Experiment (EVE) - EUV spectral irradiance from 1 to 1050 Å. MEGS disperse EUV light from full disk of the Sun and corona onto a 1024 x 2048 charge coupled device.</li></ul> | AIA: [Lemen et al. 2012](https://ui.adsabs.harvard.edu/link_gateway/2012SoPh..275...17L/doi:10.1007/s11207-011-9776-8).<br>HMI: [Hoeksema et al. 2014](https://ui.adsabs.harvard.edu/link_gateway/2014SoPh..289.3483H/doi:10.1007/s11207-014-0516-8).<br>EUV: [Woods et al. 2012](https://ui.adsabs.harvard.edu/link_gateway/2012SoPh..275..115W/doi:10.1007/s11207-009-9487-6).<br>Processed into 512x512/0.6, 512x512/0.5 arcsec for machine learning ready: [Galvez et al. 2019](https://iopscience.iop.org/article/10.3847/1538-4365/ab1005) via [sdoml.org](sdoml.org). |
 
 ## Pre-training
 ```bash
