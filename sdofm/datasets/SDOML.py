@@ -127,8 +127,10 @@ class SDOMLDataset(Dataset):
             year = str(idx_row_element.name.year)
             img = self.aia_data[year][wavelength][idx_wavelength, :, :]
             # TODO: DO IT PROPERLY AND REMOVE THIS
-            aia_image_dict[wavelength] = np.array((img, img, img))  # [:, 0, :, :]
+            # aia_image_dict[wavelength] = np.array((img, img, img))  # [:, 0, :, :]
+            aia_image_dict[wavelength] = img  # [:, 0, :, :]
             # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
             if self.normalizations:
                 aia_image_dict[wavelength] -= self.normalizations["AIA"][wavelength][
                     "mean"
@@ -267,11 +269,9 @@ class SDOMLDataModule(pl.LightningDataModule):
             if i not in self.test_months + self.val_months + self.holdout_months
         ]
 
-        if self.isAIA:
-            self.training_years = [
-                int(year) for year in self.aia_data.keys() if int(year) < 2015
-            ]
-        elif self.isHMI:
+        if self.isAIA or self.isHMI:
+            self.training_years = [int(year) for year in self.aia_data.keys()]
+        else:  # EVE included, limit to 2010-2014
             self.training_years = [
                 int(year) for year in self.hmi_data.keys() if int(year) < 2015
             ]
@@ -309,10 +309,13 @@ class SDOMLDataModule(pl.LightningDataModule):
         self.normalizations_cache_filename = (
             f"{cache_dir}/normalizations_{self.cache_id}.json"
         )
+        self.hmi_mask_cache_filename = f"{cache_dir}/hmi_mask_512x512.npy"
 
-        # Temporal alignment of hmi, aia and eve data
-        self.aligndata = self.__aligntime()
+        self.aligndata = (
+            self.__aligntime()
+        )  # Temporal alignment of hmi, aia and eve data
         self.normalizations = self.__calc_normalizations()
+        self.hmi_mask = self.__make_hmi_mask()
 
     def __str__(self):
         output = ""
@@ -404,49 +407,54 @@ class SDOMLDataModule(pl.LightningDataModule):
         # HMI
         if self.isHMI:
             print(f"Aligning HMI data")
-            print(f"Aligning HMI data for component: {self.components[0]}")
-            for j, year in enumerate(
-                tqdm((self.training_years))
-            ):  # EVE data only goes up to 2014
+            for i, component in enumerate(self.components):
+                print(f"Aligning HMI data for component: {component}")
+                for j, year in enumerate(
+                    tqdm((self.training_years))
+                ):  # EVE data only goes up to 2014
 
-                hmi_channel = self.hmi_data[year][self.components[0]]
+                    hmi_channel = self.hmi_data[year][component]
 
-                # get observation time
-                t_obs_hmi_channel_pre = hmi_channel.attrs["T_OBS"]
+                    # get observation time
+                    t_obs_hmi_channel_pre = hmi_channel.attrs["T_OBS"]
 
-                for idx, time_val in enumerate(t_obs_hmi_channel_pre):
-                    t_obs_hmi_channel_pre[idx] = time_val[:19]
+                    for idx, time_val in enumerate(t_obs_hmi_channel_pre):
+                        t_obs_hmi_channel_pre[idx] = time_val[:19]
 
-                # substitute characters
-                replacements = {".": "-", "_": "T", "TTAI": "", "60": "59"}
-                t_obs_hmi_channel = []
-                for word in t_obs_hmi_channel_pre:
-                    for old_char, new_char in replacements.items():
-                        word = word.replace(old_char, new_char)
-                    t_obs_hmi_channel.append(word)
+                    # substitute characters
+                    replacements = {".": "-", "_": "T", "TTAI": "", "60": "59"}
+                    t_obs_hmi_channel = []
+                    for word in t_obs_hmi_channel_pre:
+                        for old_char, new_char in replacements.items():
+                            word = word.replace(old_char, new_char)
+                        t_obs_hmi_channel.append(word)
 
-                if j == 0:
-                    # transform to DataFrame
-                    # HMI
-                    df_t_hmi = pd.DataFrame(
-                        {
-                            "Time": pd.to_datetime(t_obs_hmi_channel, format="mixed"),
-                            f"idx_{self.components[0]}": np.arange(
-                                0, len(t_obs_hmi_channel)
-                            ),
-                        }
-                    )
+                    if j == 0:
+                        # transform to DataFrame
+                        # HMI
+                        df_t_hmi = pd.DataFrame(
+                            {
+                                "Time": pd.to_datetime(
+                                    t_obs_hmi_channel, format="mixed"
+                                ),
+                                f"idx_{component}": np.arange(
+                                    0, len(t_obs_hmi_channel)
+                                ),
+                            }
+                        )
 
-                else:
-                    df_tmp_hmi = pd.DataFrame(
-                        {
-                            "Time": pd.to_datetime(t_obs_hmi_channel, format="mixed"),
-                            f"idx_{self.components[0]}": np.arange(
-                                0, len(t_obs_hmi_channel)
-                            ),
-                        }
-                    )
-                    df_t_hmi = pd.concat([df_t_hmi, df_tmp_hmi], ignore_index=True)
+                    else:
+                        df_tmp_hmi = pd.DataFrame(
+                            {
+                                "Time": pd.to_datetime(
+                                    t_obs_hmi_channel, format="mixed"
+                                ),
+                                f"idx_{component}": np.arange(
+                                    0, len(t_obs_hmi_channel)
+                                ),
+                            }
+                        )
+                        df_t_hmi = pd.concat([df_t_hmi, df_tmp_hmi], ignore_index=True)
 
                 # Enforcing same datetime format
                 transform_datetime = lambda x: pd.to_datetime(
@@ -462,10 +470,10 @@ class SDOMLDataModule(pl.LightningDataModule):
                 )  # removing potential duplicates derived by rounding
                 df_t_obs_hmi.set_index("Time", inplace=True)
 
-            if join_series is None:
-                join_series = join_series.join(df_t_obs_hmi, how="inner")
-            else:
-                join_series = df_t_obs_hmi
+                if join_series is None:
+                    join_series = df_t_obs_hmi
+                else:
+                    join_series = join_series.join(df_t_obs_hmi, how="inner")
 
         print(f"HMI alignment completed with {join_series.shape[0]} samples.")
 
@@ -676,6 +684,32 @@ class SDOMLDataModule(pl.LightningDataModule):
             )
 
         return normalizations_hmi
+
+    def __make_hmi_mask(self):
+        if Path(self.hmi_mask_cache_filename).exists():
+            loaded_mask = np.load(self.hmi_mask_cache_filename)
+            hmi_mask = torch.Tensor(loaded_mask).to(dtype=torch.uint8)
+            print(
+                f"[* CACHE SYSTEM *] Found cached HMI mask data in {self.hmi_mask_cache_filename}."
+            )
+            return hmi_mask
+        elif not self.isHMI:
+            raise ValueError(
+                "Mask could not be found in cache and 2010 HMI data is not available to generate it, stopping..."
+            )
+
+        hmi = torch.Tensor(self.hmi_data[2010][ALL_COMPONENTS[0]][0])
+        hmi_mask = (torch.abs(hmi) > 0.0).to(dtype=torch.uint8)
+        hmi_mask_ratio = hmi_mask.sum().item() / hmi_mask.numel()
+        if np.abs(hmi_mask_ratio - 0.496) > 0.2:
+            print(
+                f"WARNING: HMI mask ratio is {hmi_mask_ratio:.2f}, which is significantly different from expected (0.496)"
+            )
+        print(
+            f"[*] Saving HMI mask with ratio {hmi_mask_ratio:.2f} to {self.hmi_mask_cache_filename}."
+        )
+        np.save(self.hmi_mask_cache_filename, hmi_mask.numpy())
+        return hmi_mask
 
     def setup(self, stage=None):
 
