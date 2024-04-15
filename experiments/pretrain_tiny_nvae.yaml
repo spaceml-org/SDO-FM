@@ -1,20 +1,11 @@
-# default.yaml
+# pretrain_tiny_nvae.yaml
 
-# MODEL SUMMARY
-#   | Name        | Type                   | Params
-# -------------------------------------------------------
-# 0 | autoencoder | MaskedAutoencoderViT3D | 333 M 
-# -------------------------------------------------------
-# 329 M     Trainable params
-# 4.7 M     Non-trainable params
-# 333 M     Total params
-# 1,335.838 Total estimated model params size (MB)
 
 # general
 experiment:
-  name: "default"
+  name: "pretrain_tiny_nvae"
   project: "sdofm"
-  model: "mae"
+  model: "nvae"
   task: "train" # options: train, evaluate (not implemented)
   seed: 0
   disable_cuda: false
@@ -127,7 +118,7 @@ model:
     loss: "mse" # options: "mae", "mse", "mape"
     scheduler: "constant" #other options: "cosine", "plateau", "exp"
     scheduler_warmup: 0
-    batch_size: 256
+    batch_size: 1
     learning_rate: 0.0001
     weight_decay: 3e-4 # 0.0
     optimiser: "adam"
