@@ -188,3 +188,40 @@ def get_3d_sincos_pos_embed(embed_dim, grid_size, cls_token=False):
     if cls_token:
         pos_embed = np.concatenate([np.zeros([1, embed_dim]), pos_embed], axis=0)
     return pos_embed
+
+
+# HMI MASKING
+# From various FDL piror works (sdolatent, solar-vae, etc.)
+def hmi_mask(hmi_data):
+    return (torch.abs(hmi_data) > 0.0).to(dtype=torch.uint8)
+
+
+def apply_hmi_mask(data, hmi_mask, value):
+    # hmi mask is a binary mask of 0 and 1 values
+    # 1 represents that the pixel is within the solar disk, 0 represents that the pixel is outside the solar disk
+    # this function replaces the pixels outside the solar disk with the given scalar value
+    if data.ndim == 4:
+        hmi = data[:, :3]
+        aia = data[:, 3:]
+
+        value_mask = value * (~hmi_mask.to(dtype=torch.bool))
+        hmi_mask = hmi_mask.to(device=data.device)
+        value_mask = value_mask.to(device=data.device)
+        hmi = hmi * hmi_mask
+        hmi = hmi + value_mask
+
+        data = torch.cat([hmi, aia], dim=1)
+        return data
+    elif data.ndim == 3:
+        data = data.unsqueeze(0)
+        data = apply_hmi_mask(data, hmi_mask, value)
+        data = data.squeeze(0)
+        return data
+    else:
+        raise ValueError("Expecting 3d or 4d data")
+
+
+class AttributeDict(dict):
+    __slots__ = ()
+    __getattr__ = dict.__getitem__
+    __setattr__ = dict.__setitem__
