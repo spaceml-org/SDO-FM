@@ -79,23 +79,17 @@ def main(cfg: DictConfig) -> None:
         config=flatten_dict(cfg),
     )
 
-    match cfg.experiment.model:
-        case "mae":
+    match cfg.experient.task:
+        case "pretrain":
             from scripts.pretrain import Pretrainer
 
-            match cfg.experiment.task:
-                case "train":
-                    pretrainer = Pretrainer(cfg, logger=wandb_logger)
-                    pretrainer.run()
+            pretrainer = Pretrainer(cfg, logger=wandb_logger)
+            pretrainer.run()
+        case "finetune":
+            from scripts.finetune import Finetuner
 
-        case "autocalibration":
-            from scripts.pretrain import AutocalibrationFinetuner
-
-            match cfg.experiment.task:
-                case "train":
-                    finetuner = AutocalibrationFinetuner(cfg, logger=wandb_logger)
-                    finetuner.run()
-
+            finetuner = Finetuner(cfg, logger=wandb_logger)
+            finetuner.run()
         case _:
             raise NotImplementedError(
                 f"Experiment {cfg.experiment.task} not implemented"

@@ -8,23 +8,20 @@ import torch
 import wandb
 
 from sdofm import utils
-from sdofm.datasets import SDOMLDataModule
-from sdofm.pretraining import MAE, NVAE
+from sdofm.datasets import DimmedSDOMLDataModule
+from sdofm.finetuning import Autocalibration
 
 
-class Pretrainer(object):
-    def __init__(self, cfg, logger):
+class Finetuner(object):
+    def __init__(self, cfg):
         self.cfg = cfg
-        self.logger = logger
+        self.trainer = None
         self.data_module = None
         self.model = None
 
         match cfg.experiment.model:
-            case "mae":
-                self.data_module = SDOMLDataModule(
-                    # hmi_path=os.path.join(
-                    #     self.cfg.data.sdoml.base_directory, self.cfg.data.sdoml.sub_directory.hmi
-                    # ),
+            case "autocalibration":
+                self.data_module = DimmedSDOMLDataModule(
                     hmi_path=None,
                     aia_path=os.path.join(
                         self.cfg.data.sdoml.base_directory,
@@ -47,44 +44,11 @@ class Pretrainer(object):
                 )
                 self.data_module.setup()
 
-                self.model = MAE(
-                    **cfg.model.mae,
-                    optimiser=cfg.model.opt.optimiser,
-                    lr=cfg.model.opt.learning_rate,
-                    weight_decay=cfg.model.opt.weight_decay,
-                )
-            case "nvae":
-                self.data_module = SDOMLDataModule(
-                    hmi_path=os.path.join(
-                        self.cfg.data.sdoml.base_directory,
-                        self.cfg.data.sdoml.sub_directory.hmi,
-                    ),
-                    aia_path=os.path.join(
-                        self.cfg.data.sdoml.base_directory,
-                        self.cfg.data.sdoml.sub_directory.aia,
-                    ),
-                    eve_path=None,
-                    components=self.cfg.data.sdoml.components,
-                    wavelengths=self.cfg.data.sdoml.wavelengths,
-                    ions=self.cfg.data.sdoml.ions,
-                    frequency=self.cfg.data.sdoml.frequency,
-                    batch_size=self.cfg.model.opt.batch_size,
-                    num_workers=self.cfg.data.num_workers,
-                    val_months=self.cfg.data.month_splits.val,
-                    test_months=self.cfg.data.month_splits.test,
-                    holdout_months=self.cfg.data.month_splits.holdout,
-                    cache_dir=os.path.join(
-                        self.cfg.data.sdoml.base_directory,
-                        self.cfg.data.sdoml.sub_directory.cache,
-                    ),
-                )
-
-                self.model = NVAE(
-                    **cfg.model.nvae,
-                    optimiser=cfg.model.opt.optimiser,
-                    lr=cfg.model.opt.learning_rate,
-                    weight_decay=cfg.model.opt.weight_decay,
-                    hmi_mask=self.data_module.hmi_mask,
+                self.model = Autocalibration(
+                    **self.cfg.model.mae,
+                    optimiser=self.cfg.model.opt.optimiser,
+                    lr=self.cfg.model.opt.learning_rate,
+                    weight_decay=self.cfg.model.opt.weight_decay,
                 )
             case _:
                 raise NotImplementedError(
@@ -92,7 +56,7 @@ class Pretrainer(object):
                 )
 
     def run(self):
-        print("\nPRE-TRAINING\n")
+        print("\nFINE TUNING\n")
 
         if self.cfg.experiment.distributed:
             trainer = pl.Trainer(
