@@ -18,16 +18,41 @@ from collections import OrderedDict
 BN_EPS = 1e-5
 SYNC_BN = True
 
-OPS = OrderedDict([
-    ('res_elu', lambda Cin, Cout, stride: ELUConv(Cin, Cout, 3, stride, 1)),
-    ('res_bnelu', lambda Cin, Cout, stride: BNELUConv(Cin, Cout, 3, stride, 1)),
-    ('res_bnswish', lambda Cin, Cout, stride: BNSwishConv(Cin, Cout, 3, stride, 1)),
-    ('res_bnswish5', lambda Cin, Cout, stride: BNSwishConv(Cin, Cout, 3, stride, 2, 2)),
-    ('mconv_e6k5g0', lambda Cin, Cout, stride: InvertedResidual(Cin, Cout, stride, ex=6, dil=1, k=5, g=0)),
-    ('mconv_e3k5g0', lambda Cin, Cout, stride: InvertedResidual(Cin, Cout, stride, ex=3, dil=1, k=5, g=0)),
-    ('mconv_e3k5g8', lambda Cin, Cout, stride: InvertedResidual(Cin, Cout, stride, ex=3, dil=1, k=5, g=8)),
-    ('mconv_e6k11g0', lambda Cin, Cout, stride: InvertedResidual(Cin, Cout, stride, ex=6, dil=1, k=11, g=0)),
-])
+OPS = OrderedDict(
+    [
+        ("res_elu", lambda Cin, Cout, stride: ELUConv(Cin, Cout, 3, stride, 1)),
+        ("res_bnelu", lambda Cin, Cout, stride: BNELUConv(Cin, Cout, 3, stride, 1)),
+        ("res_bnswish", lambda Cin, Cout, stride: BNSwishConv(Cin, Cout, 3, stride, 1)),
+        (
+            "res_bnswish5",
+            lambda Cin, Cout, stride: BNSwishConv(Cin, Cout, 3, stride, 2, 2),
+        ),
+        (
+            "mconv_e6k5g0",
+            lambda Cin, Cout, stride: InvertedResidual(
+                Cin, Cout, stride, ex=6, dil=1, k=5, g=0
+            ),
+        ),
+        (
+            "mconv_e3k5g0",
+            lambda Cin, Cout, stride: InvertedResidual(
+                Cin, Cout, stride, ex=3, dil=1, k=5, g=0
+            ),
+        ),
+        (
+            "mconv_e3k5g8",
+            lambda Cin, Cout, stride: InvertedResidual(
+                Cin, Cout, stride, ex=3, dil=1, k=5, g=8
+            ),
+        ),
+        (
+            "mconv_e6k11g0",
+            lambda Cin, Cout, stride: InvertedResidual(
+                Cin, Cout, stride, ex=6, dil=1, k=11, g=0
+            ),
+        ),
+    ]
+)
 
 
 def get_skip_connection(C, stride, affine, channel_mult):
@@ -36,7 +61,9 @@ def get_skip_connection(C, stride, affine, channel_mult):
     elif stride == 2:
         return FactorizedReduce(C, int(channel_mult * C))
     elif stride == -1:
-        return nn.Sequential(UpSample(), Conv2D(C, int(C / channel_mult), kernel_size=1))
+        return nn.Sequential(
+            UpSample(), Conv2D(C, int(C / channel_mult), kernel_size=1)
+        )
 
 
 def norm(t, dim):
@@ -59,10 +86,11 @@ class Swish(nn.Module):
     def forward(self, x):
         return act(x)
 
+
 @torch.jit.script
 def normalize_weight_jit(log_weight_norm, weight):
     n = torch.exp(log_weight_norm)
-    wn = torch.sqrt(torch.sum(weight * weight, dim=[1, 2, 3]))   # norm(w)
+    wn = torch.sqrt(torch.sum(weight * weight, dim=[1, 2, 3]))  # norm(w)
     weight = n * weight / (wn.view(-1, 1, 1, 1) + 1e-5)
     return weight
 
@@ -70,18 +98,33 @@ def normalize_weight_jit(log_weight_norm, weight):
 class Conv2D(nn.Conv2d):
     """Allows for weights as input."""
 
-    def __init__(self, C_in, C_out, kernel_size, stride=1, padding=0, dilation=1, groups=1, bias=False, data_init=False,
-                 weight_norm=True):
+    def __init__(
+        self,
+        C_in,
+        C_out,
+        kernel_size,
+        stride=1,
+        padding=0,
+        dilation=1,
+        groups=1,
+        bias=False,
+        data_init=False,
+        weight_norm=True,
+    ):
         """
         Args:
             use_shared (bool): Use weights for this layer or not?
         """
-        super(Conv2D, self).__init__(C_in, C_out, kernel_size, stride, padding, dilation, groups, bias)
+        super(Conv2D, self).__init__(
+            C_in, C_out, kernel_size, stride, padding, dilation, groups, bias
+        )
 
         self.log_weight_norm = None
         if weight_norm:
             init = norm(self.weight, dim=[1, 2, 3]).view(-1, 1, 1, 1)
-            self.log_weight_norm = nn.Parameter(torch.log(init + 1e-2), requires_grad=True)
+            self.log_weight_norm = nn.Parameter(
+                torch.log(init + 1e-2), requires_grad=True
+            )
 
         self.data_init = data_init
         self.init_done = False
@@ -96,9 +139,19 @@ class Conv2D(nn.Conv2d):
         # do data based initialization
         if self.data_init and not self.init_done:
             with torch.no_grad():
-                weight = self.weight / (norm(self.weight, dim=[1, 2, 3]).view(-1, 1, 1, 1) + 1e-5)
+                weight = self.weight / (
+                    norm(self.weight, dim=[1, 2, 3]).view(-1, 1, 1, 1) + 1e-5
+                )
                 bias = None
-                out = F.conv2d(x, weight, bias, self.stride, self.padding, self.dilation, self.groups)
+                out = F.conv2d(
+                    x,
+                    weight,
+                    bias,
+                    self.stride,
+                    self.padding,
+                    self.dilation,
+                    self.groups,
+                )
                 mn = torch.mean(out, dim=[0, 2, 3])
                 st = 5 * torch.std(out, dim=[0, 2, 3])
 
@@ -107,18 +160,25 @@ class Conv2D(nn.Conv2d):
                 average_tensor(st, is_distributed=True)
 
                 if self.bias is not None:
-                    self.bias.data = - mn / (st + 1e-5)
+                    self.bias.data = -mn / (st + 1e-5)
                 self.log_weight_norm.data = -torch.log((st.view(-1, 1, 1, 1) + 1e-5))
                 self.init_done = True
 
         self.weight_normalized = self.normalize_weight()
 
         bias = self.bias
-        return F.conv2d(x, self.weight_normalized, bias, self.stride,
-                        self.padding, self.dilation, self.groups)
+        return F.conv2d(
+            x,
+            self.weight_normalized,
+            bias,
+            self.stride,
+            self.padding,
+            self.dilation,
+            self.groups,
+        )
 
     def normalize_weight(self):
-        """ applies weight normalization """
+        """applies weight normalization"""
         if self.log_weight_norm is not None:
             weight = normalize_weight_jit(self.log_weight_norm, self.weight)
         else:
@@ -160,13 +220,21 @@ class ELUConv(nn.Module):
         super(ELUConv, self).__init__()
         self.upsample = stride == -1
         stride = abs(stride)
-        self.conv_0 = Conv2D(C_in, C_out, kernel_size, stride=stride, padding=padding, bias=True, dilation=dilation,
-                             data_init=True)
+        self.conv_0 = Conv2D(
+            C_in,
+            C_out,
+            kernel_size,
+            stride=stride,
+            padding=padding,
+            bias=True,
+            dilation=dilation,
+            data_init=True,
+        )
 
     def forward(self, x):
         out = F.elu(x)
         if self.upsample:
-            out = F.interpolate(out, scale_factor=2, mode='nearest')
+            out = F.interpolate(out, scale_factor=2, mode="nearest")
         out = self.conv_0(out)
         return out
 
@@ -177,13 +245,21 @@ class BNELUConv(nn.Module):
         self.upsample = stride == -1
         stride = abs(stride)
         self.bn = get_batchnorm(C_in, eps=BN_EPS, momentum=0.05)
-        self.conv_0 = Conv2D(C_in, C_out, kernel_size, stride=stride, padding=padding, bias=True, dilation=dilation)
+        self.conv_0 = Conv2D(
+            C_in,
+            C_out,
+            kernel_size,
+            stride=stride,
+            padding=padding,
+            bias=True,
+            dilation=dilation,
+        )
 
     def forward(self, x):
         x = self.bn(x)
         out = F.elu(x)
         if self.upsample:
-            out = F.interpolate(out, scale_factor=2, mode='nearest')
+            out = F.interpolate(out, scale_factor=2, mode="nearest")
         out = self.conv_0(out)
         return out
 
@@ -196,7 +272,15 @@ class BNSwishConv(nn.Module):
         self.upsample = stride == -1
         stride = abs(stride)
         self.bn_act = SyncBatchNormSwish(C_in, eps=BN_EPS, momentum=0.05)
-        self.conv_0 = Conv2D(C_in, C_out, kernel_size, stride=stride, padding=padding, bias=True, dilation=dilation)
+        self.conv_0 = Conv2D(
+            C_in,
+            C_out,
+            kernel_size,
+            stride=stride,
+            padding=padding,
+            bias=True,
+            dilation=dilation,
+        )
 
     def forward(self, x):
         """
@@ -205,10 +289,9 @@ class BNSwishConv(nn.Module):
         """
         out = self.bn_act(x)
         if self.upsample:
-            out = F.interpolate(out, scale_factor=2, mode='nearest')
+            out = F.interpolate(out, scale_factor=2, mode="nearest")
         out = self.conv_0(out)
         return out
-
 
 
 class FactorizedReduce(nn.Module):
@@ -218,7 +301,9 @@ class FactorizedReduce(nn.Module):
         self.conv_1 = Conv2D(C_in, C_out // 4, 1, stride=2, padding=0, bias=True)
         self.conv_2 = Conv2D(C_in, C_out // 4, 1, stride=2, padding=0, bias=True)
         self.conv_3 = Conv2D(C_in, C_out // 4, 1, stride=2, padding=0, bias=True)
-        self.conv_4 = Conv2D(C_in, C_out - 3 * (C_out // 4), 1, stride=2, padding=0, bias=True)
+        self.conv_4 = Conv2D(
+            C_in, C_out - 3 * (C_out // 4), 1, stride=2, padding=0, bias=True
+        )
 
     def forward(self, x):
         out = act(x)
@@ -236,7 +321,7 @@ class UpSample(nn.Module):
         pass
 
     def forward(self, x):
-        return F.interpolate(x, scale_factor=2, mode='bilinear', align_corners=True)
+        return F.interpolate(x, scale_factor=2, mode="bilinear", align_corners=True)
 
 
 class EncCombinerCell(nn.Module):
@@ -257,7 +342,9 @@ class DecCombinerCell(nn.Module):
     def __init__(self, Cin1, Cin2, Cout, cell_type):
         super(DecCombinerCell, self).__init__()
         self.cell_type = cell_type
-        self.conv = Conv2D(Cin1 + Cin2, Cout, kernel_size=1, stride=1, padding=0, bias=True)
+        self.conv = Conv2D(
+            Cin1 + Cin2, Cout, kernel_size=1, stride=1, padding=0, bias=True
+        )
 
     def forward(self, x1, x2):
         out = torch.cat([x1, x2], dim=1)
@@ -271,8 +358,20 @@ class ConvBNSwish(nn.Module):
         super(ConvBNSwish, self).__init__()
 
         self.conv = nn.Sequential(
-            Conv2D(Cin, Cout, k, stride, padding, groups=groups, bias=False, dilation=dilation, weight_norm=False),
-            SyncBatchNormSwish(Cout, eps=BN_EPS, momentum=0.05)  # drop in replacement for BN + Swish
+            Conv2D(
+                Cin,
+                Cout,
+                k,
+                stride,
+                padding,
+                groups=groups,
+                bias=False,
+                dilation=dilation,
+                weight_norm=False,
+            ),
+            SyncBatchNormSwish(
+                Cout, eps=BN_EPS, momentum=0.05
+            ),  # drop in replacement for BN + Swish
         )
 
     def forward(self, x):
@@ -283,8 +382,12 @@ class SE(nn.Module):
     def __init__(self, Cin, Cout):
         super(SE, self).__init__()
         num_hidden = max(Cout // 16, 4)
-        self.se = nn.Sequential(nn.Linear(Cin, num_hidden), nn.ReLU(inplace=True),
-                                nn.Linear(num_hidden, Cout), nn.Sigmoid())
+        self.se = nn.Sequential(
+            nn.Linear(Cin, num_hidden),
+            nn.ReLU(inplace=True),
+            nn.Linear(num_hidden, Cout),
+            nn.Sigmoid(),
+        )
 
     def forward(self, x):
         se = torch.mean(x, dim=[2, 3])
@@ -307,11 +410,20 @@ class InvertedResidual(nn.Module):
         groups = hidden_dim if g == 0 else g
 
         layers0 = [nn.UpsamplingNearest2d(scale_factor=2)] if self.upsample else []
-        layers = [get_batchnorm(Cin, eps=BN_EPS, momentum=0.05),
-                  ConvBNSwish(Cin, hidden_dim, k=1),
-                  ConvBNSwish(hidden_dim, hidden_dim, stride=self.stride, groups=groups, k=k, dilation=dil),
-                  Conv2D(hidden_dim, Cout, 1, 1, 0, bias=False, weight_norm=False),
-                  get_batchnorm(Cout, momentum=0.05)]
+        layers = [
+            get_batchnorm(Cin, eps=BN_EPS, momentum=0.05),
+            ConvBNSwish(Cin, hidden_dim, k=1),
+            ConvBNSwish(
+                hidden_dim,
+                hidden_dim,
+                stride=self.stride,
+                groups=groups,
+                k=k,
+                dilation=dil,
+            ),
+            Conv2D(hidden_dim, Cout, 1, 1, 0, bias=False, weight_norm=False),
+            get_batchnorm(Cout, momentum=0.05),
+        ]
 
         layers0.extend(layers)
         self.conv = nn.Sequential(*layers0)

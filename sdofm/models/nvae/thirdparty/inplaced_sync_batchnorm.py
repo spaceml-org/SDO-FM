@@ -108,9 +108,18 @@ class SyncBatchNormSwish(_BatchNorm):
         https://arxiv.org/abs/1502.03167
     """
 
-    def __init__(self, num_features, eps=1e-5, momentum=0.1, affine=True,
-                 track_running_stats=True, process_group=None):
-        super(SyncBatchNormSwish, self).__init__(num_features, eps, momentum, affine, track_running_stats)
+    def __init__(
+        self,
+        num_features,
+        eps=1e-5,
+        momentum=0.1,
+        affine=True,
+        track_running_stats=True,
+        process_group=None,
+    ):
+        super(SyncBatchNormSwish, self).__init__(
+            num_features, eps, momentum, affine, track_running_stats
+        )
         self.process_group = process_group
         # gpu_size is set through DistributedDataParallel initialization. This is to ensure that SyncBatchNorm is used
         # under supported condition (single GPU per process)
@@ -118,12 +127,15 @@ class SyncBatchNormSwish(_BatchNorm):
 
     def _check_input_dim(self, input):
         if input.dim() < 2:
-            raise ValueError('expected at least 2D input (got {}D input)'
-                             .format(input.dim()))
+            raise ValueError(
+                "expected at least 2D input (got {}D input)".format(input.dim())
+            )
 
     def _specify_ddp_gpu_num(self, gpu_size):
         if gpu_size > 1:
-            raise ValueError('SyncBatchNorm is only supported for DDP with single GPU per process')
+            raise ValueError(
+                "SyncBatchNorm is only supported for DDP with single GPU per process"
+            )
         self.ddp_gpu_size = gpu_size
 
     def forward(self, input):
@@ -159,15 +171,31 @@ class SyncBatchNormSwish(_BatchNorm):
         # fallback to framework BN when synchronization is not necessary
         if not need_sync:
             out = F.batch_norm(
-                input, self.running_mean, self.running_var, self.weight, self.bias,
+                input,
+                self.running_mean,
+                self.running_var,
+                self.weight,
+                self.bias,
                 self.training or not self.track_running_stats,
-                exponential_average_factor, self.eps)
+                exponential_average_factor,
+                self.eps,
+            )
             return swish.apply(out)
         else:
             # av: I only use it in this setting.
             if not self.ddp_gpu_size and False:
-                raise AttributeError('SyncBatchNorm is only supported within torch.nn.parallel.DistributedDataParallel')
+                raise AttributeError(
+                    "SyncBatchNorm is only supported within torch.nn.parallel.DistributedDataParallel"
+                )
 
             return sync_batch_norm.apply(
-                input, self.weight, self.bias, self.running_mean, self.running_var,
-                self.eps, exponential_average_factor, process_group, world_size)
+                input,
+                self.weight,
+                self.bias,
+                self.running_mean,
+                self.running_var,
+                self.eps,
+                exponential_average_factor,
+                process_group,
+                world_size,
+            )

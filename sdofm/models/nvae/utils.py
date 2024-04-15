@@ -18,6 +18,7 @@ import numpy as np
 import torch.distributed as dist
 
 import torch.nn.functional as F
+
 # from tensorboardX import SummaryWriter
 
 
@@ -47,7 +48,7 @@ class ExpMovingAvgrageMeter(object):
         self.avg = 0
 
     def update(self, val):
-        self.avg = (1. - self.momentum) * self.avg + self.momentum * val
+        self.avg = (1.0 - self.momentum) * self.avg + self.momentum * val
 
 
 class DummyDDP(nn.Module):
@@ -60,14 +61,21 @@ class DummyDDP(nn.Module):
 
 
 def count_parameters_in_M(model):
-    return np.sum(np.prod(v.size()) for name, v in model.named_parameters() if "auxiliary" not in name)/1e6
+    return (
+        np.sum(
+            np.prod(v.size())
+            for name, v in model.named_parameters()
+            if "auxiliary" not in name
+        )
+        / 1e6
+    )
 
 
 def save_checkpoint(state, is_best, save):
-    filename = os.path.join(save, 'checkpoint.pth.tar')
+    filename = os.path.join(save, "checkpoint.pth.tar")
     torch.save(state, filename)
     if is_best:
-        best_filename = os.path.join(save, 'model_best.pth.tar')
+        best_filename = os.path.join(save, "model_best.pth.tar")
         shutil.copyfile(filename, best_filename)
 
 
@@ -82,13 +90,13 @@ def load(model, model_path):
 def create_exp_dir(path, scripts_to_save=None):
     if not os.path.exists(path):
         os.makedirs(path, exist_ok=True)
-    print('Experiment dir : {}'.format(path))
+    print("Experiment dir : {}".format(path))
 
     if scripts_to_save is not None:
-        if not os.path.exists(os.path.join(path, 'scripts')):
-            os.mkdir(os.path.join(path, 'scripts'))
+        if not os.path.exists(os.path.join(path, "scripts")):
+            os.mkdir(os.path.join(path, "scripts"))
         for script in scripts_to_save:
-            dst_file = os.path.join(path, 'scripts', os.path.basename(script))
+            dst_file = os.path.join(path, "scripts", os.path.basename(script))
             shutil.copyfile(script, dst_file)
 
 
@@ -97,13 +105,18 @@ class Logger(object):
         # other libraries may set logging before arriving at this line.
         # by reloading logging, we can get rid of previous configs set by other libraries.
         from importlib import reload
+
         reload(logging)
         self.rank = rank
         if self.rank == 0:
-            log_format = '%(asctime)s %(message)s'
-            logging.basicConfig(stream=sys.stdout, level=logging.INFO,
-                                format=log_format, datefmt='%m/%d %I:%M:%S %p')
-            fh = logging.FileHandler(os.path.join(save, 'log.txt'))
+            log_format = "%(asctime)s %(message)s"
+            logging.basicConfig(
+                stream=sys.stdout,
+                level=logging.INFO,
+                format=log_format,
+                datefmt="%m/%d %I:%M:%S %p",
+            )
+            fh = logging.FileHandler(os.path.join(save, "log.txt"))
             fh.setFormatter(logging.Formatter(log_format))
             logging.getLogger().addHandler(fh)
             self.start_time = time.time()
@@ -112,7 +125,8 @@ class Logger(object):
         if self.rank == 0:
             elapsed_time = time.time() - self.start_time
             elapsed_time = time.strftime(
-                '(Elapsed: %H:%M:%S) ', time.gmtime(elapsed_time))
+                "(Elapsed: %H:%M:%S) ", time.gmtime(elapsed_time)
+            )
             if isinstance(string, str):
                 string = elapsed_time + string
             else:
@@ -159,11 +173,11 @@ def reduce_tensor(tensor, world_size):
 
 
 def get_stride_for_cell_type(cell_type):
-    if cell_type.startswith('normal') or cell_type.startswith('combiner'):
+    if cell_type.startswith("normal") or cell_type.startswith("combiner"):
         stride = 1
-    elif cell_type.startswith('down'):
+    elif cell_type.startswith("down"):
         stride = 2
-    elif cell_type.startswith('up'):
+    elif cell_type.startswith("up"):
         stride = -1
     else:
         raise NotImplementedError(cell_type)
@@ -183,14 +197,40 @@ def get_cout(cin, stride):
 
 
 def kl_balancer_coeff(num_scales, groups_per_scale, fun):
-    if fun == 'equal':
-        coeff = torch.cat([torch.ones(groups_per_scale[num_scales - i - 1]) for i in range(num_scales)], dim=0)
-    elif fun == 'linear':
-        coeff = torch.cat([(2 ** i) * torch.ones(groups_per_scale[num_scales - i - 1]) for i in range(num_scales)], dim=0)
-    elif fun == 'sqrt':
-        coeff = torch.cat([np.sqrt(2 ** i) * torch.ones(groups_per_scale[num_scales - i - 1]) for i in range(num_scales)], dim=0)
-    elif fun == 'square':
-        coeff = torch.cat([np.square(2 ** i) / groups_per_scale[num_scales - i - 1] * torch.ones(groups_per_scale[num_scales - i - 1]) for i in range(num_scales)], dim=0)
+    if fun == "equal":
+        coeff = torch.cat(
+            [
+                torch.ones(groups_per_scale[num_scales - i - 1])
+                for i in range(num_scales)
+            ],
+            dim=0,
+        )
+    elif fun == "linear":
+        coeff = torch.cat(
+            [
+                (2**i) * torch.ones(groups_per_scale[num_scales - i - 1])
+                for i in range(num_scales)
+            ],
+            dim=0,
+        )
+    elif fun == "sqrt":
+        coeff = torch.cat(
+            [
+                np.sqrt(2**i) * torch.ones(groups_per_scale[num_scales - i - 1])
+                for i in range(num_scales)
+            ],
+            dim=0,
+        )
+    elif fun == "square":
+        coeff = torch.cat(
+            [
+                np.square(2**i)
+                / groups_per_scale[num_scales - i - 1]
+                * torch.ones(groups_per_scale[num_scales - i - 1])
+                for i in range(num_scales)
+            ],
+            dim=0,
+        )
     else:
         raise NotImplementedError
     # convert min to 1.
@@ -235,7 +275,7 @@ def kl_coeff(step, total_step, constant_step, min_kl_coeff):
 
 def log_iw(decoder, x, log_q, log_p, crop=False):
     recon = reconstruction_loss(decoder, x, crop)
-    return - recon - log_q + log_p
+    return -recon - log_q + log_p
 
 
 def reconstruction_loss(decoder, x, crop=False):
@@ -244,31 +284,38 @@ def reconstruction_loss(decoder, x, crop=False):
     recon = decoder.log_prob(x)
     if crop:
         recon = recon[:, :, 2:30, 2:30]
-    
+
     if isinstance(decoder, DiscMixLogistic):
-        loss = -torch.sum(recon, dim=[1, 2])    # summation over RGB is done.
+        loss = -torch.sum(recon, dim=[1, 2])  # summation over RGB is done.
     else:
         # loss = -torch.sum(recon, dim=[1, 2, 3])
-        recon_hmi = recon[:,:3]
-        recon_aia = recon[:,3:]
-        hmi_factor = 4.
-        aia_factor = 1.
-        loss = torch.sum(recon_hmi, dim=[1,2,3]) * hmi_factor + torch.sum(recon_aia, dim=[1,2,3]) * aia_factor
+        recon_hmi = recon[:, :3]
+        recon_aia = recon[:, 3:]
+        hmi_factor = 4.0
+        aia_factor = 1.0
+        loss = (
+            torch.sum(recon_hmi, dim=[1, 2, 3]) * hmi_factor
+            + torch.sum(recon_aia, dim=[1, 2, 3]) * aia_factor
+        )
         loss = -loss
     return loss
 
 
 def tile_image(batch_image, n):
     assert n * n == batch_image.size(0)
-    channels, height, width = batch_image.size(1), batch_image.size(2), batch_image.size(3)
+    channels, height, width = (
+        batch_image.size(1),
+        batch_image.size(2),
+        batch_image.size(3),
+    )
     batch_image = batch_image.view(n, n, channels, height, width)
-    batch_image = batch_image.permute(2, 0, 3, 1, 4)                              # n, height, n, width, c
+    batch_image = batch_image.permute(2, 0, 3, 1, 4)  # n, height, n, width, c
     batch_image = batch_image.contiguous().view(channels, n * height, n * width)
     return batch_image
 
 
 def average_gradients(params, is_distributed):
-    """ Gradient averaging. """
+    """Gradient averaging."""
     if is_distributed:
         size = float(dist.get_world_size())
         for param in params:
@@ -278,7 +325,7 @@ def average_gradients(params, is_distributed):
 
 
 def average_params(params, is_distributed):
-    """ parameter averaging. """
+    """parameter averaging."""
     if is_distributed:
         size = float(dist.get_world_size())
         for param in params:
@@ -305,30 +352,38 @@ def one_hot(indices, depth, dim):
 
 
 def num_output(dataset):
-    if dataset in {'mnist', 'omniglot'}:
+    if dataset in {"mnist", "omniglot"}:
         return 28 * 28
-    elif dataset == 'cifar10':
+    elif dataset == "cifar10":
         return 3 * 32 * 32
-    elif dataset.startswith('celeba') or dataset.startswith('imagenet') or dataset.startswith('lsun'):
-        size = int(dataset.split('_')[-1])
+    elif (
+        dataset.startswith("celeba")
+        or dataset.startswith("imagenet")
+        or dataset.startswith("lsun")
+    ):
+        size = int(dataset.split("_")[-1])
         return 3 * size * size
-    elif dataset == 'ffhq':
+    elif dataset == "ffhq":
         return 3 * 256 * 256
     else:
         raise NotImplementedError
 
 
 def get_input_size(dataset):
-    if dataset in {'mnist', 'omniglot'}:
+    if dataset in {"mnist", "omniglot"}:
         return 32
-    elif dataset == 'cifar10':
+    elif dataset == "cifar10":
         return 32
-    elif dataset.startswith('celeba') or dataset.startswith('imagenet') or dataset.startswith('lsun'):
-        size = int(dataset.split('_')[-1])
+    elif (
+        dataset.startswith("celeba")
+        or dataset.startswith("imagenet")
+        or dataset.startswith("lsun")
+    ):
+        size = int(dataset.split("_")[-1])
         return size
-    elif dataset == 'ffhq':
+    elif dataset == "ffhq":
         return 256
-    elif dataset == 'sdoml':
+    elif dataset == "sdoml":
         return 512
     else:
         raise NotImplementedError
@@ -337,150 +392,152 @@ def get_input_size(dataset):
 def pre_process(x, num_bits):
     if num_bits != 8:
         x = torch.floor(x * 255 / 2 ** (8 - num_bits))
-        x /= (2 ** num_bits - 1)
+        x /= 2**num_bits - 1
     return x
 
 
 def get_arch_cells(arch_type):
-    if arch_type == 'res_elu':
+    if arch_type == "res_elu":
         arch_cells = dict()
-        arch_cells['normal_enc'] = ['res_elu', 'res_elu']
-        arch_cells['down_enc'] = ['res_elu', 'res_elu']
-        arch_cells['normal_dec'] = ['res_elu', 'res_elu']
-        arch_cells['up_dec'] = ['res_elu', 'res_elu']
-        arch_cells['normal_pre'] = ['res_elu', 'res_elu']
-        arch_cells['down_pre'] = ['res_elu', 'res_elu']
-        arch_cells['normal_post'] = ['res_elu', 'res_elu']
-        arch_cells['up_post'] = ['res_elu', 'res_elu']
-        arch_cells['ar_nn'] = ['']
-    elif arch_type == 'res_bnelu':
+        arch_cells["normal_enc"] = ["res_elu", "res_elu"]
+        arch_cells["down_enc"] = ["res_elu", "res_elu"]
+        arch_cells["normal_dec"] = ["res_elu", "res_elu"]
+        arch_cells["up_dec"] = ["res_elu", "res_elu"]
+        arch_cells["normal_pre"] = ["res_elu", "res_elu"]
+        arch_cells["down_pre"] = ["res_elu", "res_elu"]
+        arch_cells["normal_post"] = ["res_elu", "res_elu"]
+        arch_cells["up_post"] = ["res_elu", "res_elu"]
+        arch_cells["ar_nn"] = [""]
+    elif arch_type == "res_bnelu":
         arch_cells = dict()
-        arch_cells['normal_enc'] = ['res_bnelu', 'res_bnelu']
-        arch_cells['down_enc'] = ['res_bnelu', 'res_bnelu']
-        arch_cells['normal_dec'] = ['res_bnelu', 'res_bnelu']
-        arch_cells['up_dec'] = ['res_bnelu', 'res_bnelu']
-        arch_cells['normal_pre'] = ['res_bnelu', 'res_bnelu']
-        arch_cells['down_pre'] = ['res_bnelu', 'res_bnelu']
-        arch_cells['normal_post'] = ['res_bnelu', 'res_bnelu']
-        arch_cells['up_post'] = ['res_bnelu', 'res_bnelu']
-        arch_cells['ar_nn'] = ['']
-    elif arch_type == 'res_bnswish':
+        arch_cells["normal_enc"] = ["res_bnelu", "res_bnelu"]
+        arch_cells["down_enc"] = ["res_bnelu", "res_bnelu"]
+        arch_cells["normal_dec"] = ["res_bnelu", "res_bnelu"]
+        arch_cells["up_dec"] = ["res_bnelu", "res_bnelu"]
+        arch_cells["normal_pre"] = ["res_bnelu", "res_bnelu"]
+        arch_cells["down_pre"] = ["res_bnelu", "res_bnelu"]
+        arch_cells["normal_post"] = ["res_bnelu", "res_bnelu"]
+        arch_cells["up_post"] = ["res_bnelu", "res_bnelu"]
+        arch_cells["ar_nn"] = [""]
+    elif arch_type == "res_bnswish":
         arch_cells = dict()
-        arch_cells['normal_enc'] = ['res_bnswish', 'res_bnswish']
-        arch_cells['down_enc'] = ['res_bnswish', 'res_bnswish']
-        arch_cells['normal_dec'] = ['res_bnswish', 'res_bnswish']
-        arch_cells['up_dec'] = ['res_bnswish', 'res_bnswish']
-        arch_cells['normal_pre'] = ['res_bnswish', 'res_bnswish']
-        arch_cells['down_pre'] = ['res_bnswish', 'res_bnswish']
-        arch_cells['normal_post'] = ['res_bnswish', 'res_bnswish']
-        arch_cells['up_post'] = ['res_bnswish', 'res_bnswish']
-        arch_cells['ar_nn'] = ['']
-    elif arch_type == 'mbconv_sep':
+        arch_cells["normal_enc"] = ["res_bnswish", "res_bnswish"]
+        arch_cells["down_enc"] = ["res_bnswish", "res_bnswish"]
+        arch_cells["normal_dec"] = ["res_bnswish", "res_bnswish"]
+        arch_cells["up_dec"] = ["res_bnswish", "res_bnswish"]
+        arch_cells["normal_pre"] = ["res_bnswish", "res_bnswish"]
+        arch_cells["down_pre"] = ["res_bnswish", "res_bnswish"]
+        arch_cells["normal_post"] = ["res_bnswish", "res_bnswish"]
+        arch_cells["up_post"] = ["res_bnswish", "res_bnswish"]
+        arch_cells["ar_nn"] = [""]
+    elif arch_type == "mbconv_sep":
         arch_cells = dict()
-        arch_cells['normal_enc'] = ['mconv_e6k5g0']
-        arch_cells['down_enc'] = ['mconv_e6k5g0']
-        arch_cells['normal_dec'] = ['mconv_e6k5g0']
-        arch_cells['up_dec'] = ['mconv_e6k5g0']
-        arch_cells['normal_pre'] = ['mconv_e3k5g0']
-        arch_cells['down_pre'] = ['mconv_e3k5g0']
-        arch_cells['normal_post'] = ['mconv_e3k5g0']
-        arch_cells['up_post'] = ['mconv_e3k5g0']
-        arch_cells['ar_nn'] = ['']
-    elif arch_type == 'mbconv_sep11':
+        arch_cells["normal_enc"] = ["mconv_e6k5g0"]
+        arch_cells["down_enc"] = ["mconv_e6k5g0"]
+        arch_cells["normal_dec"] = ["mconv_e6k5g0"]
+        arch_cells["up_dec"] = ["mconv_e6k5g0"]
+        arch_cells["normal_pre"] = ["mconv_e3k5g0"]
+        arch_cells["down_pre"] = ["mconv_e3k5g0"]
+        arch_cells["normal_post"] = ["mconv_e3k5g0"]
+        arch_cells["up_post"] = ["mconv_e3k5g0"]
+        arch_cells["ar_nn"] = [""]
+    elif arch_type == "mbconv_sep11":
         arch_cells = dict()
-        arch_cells['normal_enc'] = ['mconv_e6k11g0']
-        arch_cells['down_enc'] = ['mconv_e6k11g0']
-        arch_cells['normal_dec'] = ['mconv_e6k11g0']
-        arch_cells['up_dec'] = ['mconv_e6k11g0']
-        arch_cells['normal_pre'] = ['mconv_e3k5g0']
-        arch_cells['down_pre'] = ['mconv_e3k5g0']
-        arch_cells['normal_post'] = ['mconv_e3k5g0']
-        arch_cells['up_post'] = ['mconv_e3k5g0']
-        arch_cells['ar_nn'] = ['']
-    elif arch_type == 'res_mbconv':
+        arch_cells["normal_enc"] = ["mconv_e6k11g0"]
+        arch_cells["down_enc"] = ["mconv_e6k11g0"]
+        arch_cells["normal_dec"] = ["mconv_e6k11g0"]
+        arch_cells["up_dec"] = ["mconv_e6k11g0"]
+        arch_cells["normal_pre"] = ["mconv_e3k5g0"]
+        arch_cells["down_pre"] = ["mconv_e3k5g0"]
+        arch_cells["normal_post"] = ["mconv_e3k5g0"]
+        arch_cells["up_post"] = ["mconv_e3k5g0"]
+        arch_cells["ar_nn"] = [""]
+    elif arch_type == "res_mbconv":
         arch_cells = dict()
-        arch_cells['normal_enc'] = ['res_bnswish', 'res_bnswish']
-        arch_cells['down_enc'] = ['res_bnswish', 'res_bnswish']
-        arch_cells['normal_dec'] = ['mconv_e6k5g0']
-        arch_cells['up_dec'] = ['mconv_e6k5g0']
-        arch_cells['normal_pre'] = ['res_bnswish', 'res_bnswish']
-        arch_cells['down_pre'] = ['res_bnswish', 'res_bnswish']
-        arch_cells['normal_post'] = ['mconv_e3k5g0']
-        arch_cells['up_post'] = ['mconv_e3k5g0']
-        arch_cells['ar_nn'] = ['']
-    elif arch_type == 'res53_mbconv':
+        arch_cells["normal_enc"] = ["res_bnswish", "res_bnswish"]
+        arch_cells["down_enc"] = ["res_bnswish", "res_bnswish"]
+        arch_cells["normal_dec"] = ["mconv_e6k5g0"]
+        arch_cells["up_dec"] = ["mconv_e6k5g0"]
+        arch_cells["normal_pre"] = ["res_bnswish", "res_bnswish"]
+        arch_cells["down_pre"] = ["res_bnswish", "res_bnswish"]
+        arch_cells["normal_post"] = ["mconv_e3k5g0"]
+        arch_cells["up_post"] = ["mconv_e3k5g0"]
+        arch_cells["ar_nn"] = [""]
+    elif arch_type == "res53_mbconv":
         arch_cells = dict()
-        arch_cells['normal_enc'] = ['res_bnswish5', 'res_bnswish']
-        arch_cells['down_enc'] = ['res_bnswish5', 'res_bnswish']
-        arch_cells['normal_dec'] = ['mconv_e6k5g0']
-        arch_cells['up_dec'] = ['mconv_e6k5g0']
-        arch_cells['normal_pre'] = ['res_bnswish5', 'res_bnswish']
-        arch_cells['down_pre'] = ['res_bnswish5', 'res_bnswish']
-        arch_cells['normal_post'] = ['mconv_e3k5g0']
-        arch_cells['up_post'] = ['mconv_e3k5g0']
-        arch_cells['ar_nn'] = ['']
-    elif arch_type == 'res35_mbconv':
+        arch_cells["normal_enc"] = ["res_bnswish5", "res_bnswish"]
+        arch_cells["down_enc"] = ["res_bnswish5", "res_bnswish"]
+        arch_cells["normal_dec"] = ["mconv_e6k5g0"]
+        arch_cells["up_dec"] = ["mconv_e6k5g0"]
+        arch_cells["normal_pre"] = ["res_bnswish5", "res_bnswish"]
+        arch_cells["down_pre"] = ["res_bnswish5", "res_bnswish"]
+        arch_cells["normal_post"] = ["mconv_e3k5g0"]
+        arch_cells["up_post"] = ["mconv_e3k5g0"]
+        arch_cells["ar_nn"] = [""]
+    elif arch_type == "res35_mbconv":
         arch_cells = dict()
-        arch_cells['normal_enc'] = ['res_bnswish', 'res_bnswish5']
-        arch_cells['down_enc'] = ['res_bnswish', 'res_bnswish5']
-        arch_cells['normal_dec'] = ['mconv_e6k5g0']
-        arch_cells['up_dec'] = ['mconv_e6k5g0']
-        arch_cells['normal_pre'] = ['res_bnswish', 'res_bnswish5']
-        arch_cells['down_pre'] = ['res_bnswish', 'res_bnswish5']
-        arch_cells['normal_post'] = ['mconv_e3k5g0']
-        arch_cells['up_post'] = ['mconv_e3k5g0']
-        arch_cells['ar_nn'] = ['']
-    elif arch_type == 'res55_mbconv':
+        arch_cells["normal_enc"] = ["res_bnswish", "res_bnswish5"]
+        arch_cells["down_enc"] = ["res_bnswish", "res_bnswish5"]
+        arch_cells["normal_dec"] = ["mconv_e6k5g0"]
+        arch_cells["up_dec"] = ["mconv_e6k5g0"]
+        arch_cells["normal_pre"] = ["res_bnswish", "res_bnswish5"]
+        arch_cells["down_pre"] = ["res_bnswish", "res_bnswish5"]
+        arch_cells["normal_post"] = ["mconv_e3k5g0"]
+        arch_cells["up_post"] = ["mconv_e3k5g0"]
+        arch_cells["ar_nn"] = [""]
+    elif arch_type == "res55_mbconv":
         arch_cells = dict()
-        arch_cells['normal_enc'] = ['res_bnswish5', 'res_bnswish5']
-        arch_cells['down_enc'] = ['res_bnswish5', 'res_bnswish5']
-        arch_cells['normal_dec'] = ['mconv_e6k5g0']
-        arch_cells['up_dec'] = ['mconv_e6k5g0']
-        arch_cells['normal_pre'] = ['res_bnswish5', 'res_bnswish5']
-        arch_cells['down_pre'] = ['res_bnswish5', 'res_bnswish5']
-        arch_cells['normal_post'] = ['mconv_e3k5g0']
-        arch_cells['up_post'] = ['mconv_e3k5g0']
-        arch_cells['ar_nn'] = ['']
-    elif arch_type == 'res_mbconv9':
+        arch_cells["normal_enc"] = ["res_bnswish5", "res_bnswish5"]
+        arch_cells["down_enc"] = ["res_bnswish5", "res_bnswish5"]
+        arch_cells["normal_dec"] = ["mconv_e6k5g0"]
+        arch_cells["up_dec"] = ["mconv_e6k5g0"]
+        arch_cells["normal_pre"] = ["res_bnswish5", "res_bnswish5"]
+        arch_cells["down_pre"] = ["res_bnswish5", "res_bnswish5"]
+        arch_cells["normal_post"] = ["mconv_e3k5g0"]
+        arch_cells["up_post"] = ["mconv_e3k5g0"]
+        arch_cells["ar_nn"] = [""]
+    elif arch_type == "res_mbconv9":
         arch_cells = dict()
-        arch_cells['normal_enc'] = ['res_bnswish', 'res_bnswish']
-        arch_cells['down_enc'] = ['res_bnswish', 'res_bnswish']
-        arch_cells['normal_dec'] = ['mconv_e6k9g0']
-        arch_cells['up_dec'] = ['mconv_e6k9g0']
-        arch_cells['normal_pre'] = ['res_bnswish', 'res_bnswish']
-        arch_cells['down_pre'] = ['res_bnswish', 'res_bnswish']
-        arch_cells['normal_post'] = ['mconv_e3k9g0']
-        arch_cells['up_post'] = ['mconv_e3k9g0']
-        arch_cells['ar_nn'] = ['']
-    elif arch_type == 'mbconv_res':
+        arch_cells["normal_enc"] = ["res_bnswish", "res_bnswish"]
+        arch_cells["down_enc"] = ["res_bnswish", "res_bnswish"]
+        arch_cells["normal_dec"] = ["mconv_e6k9g0"]
+        arch_cells["up_dec"] = ["mconv_e6k9g0"]
+        arch_cells["normal_pre"] = ["res_bnswish", "res_bnswish"]
+        arch_cells["down_pre"] = ["res_bnswish", "res_bnswish"]
+        arch_cells["normal_post"] = ["mconv_e3k9g0"]
+        arch_cells["up_post"] = ["mconv_e3k9g0"]
+        arch_cells["ar_nn"] = [""]
+    elif arch_type == "mbconv_res":
         arch_cells = dict()
-        arch_cells['normal_enc'] = ['mconv_e6k5g0']
-        arch_cells['down_enc'] = ['mconv_e6k5g0']
-        arch_cells['normal_dec'] = ['res_bnswish', 'res_bnswish']
-        arch_cells['up_dec'] = ['res_bnswish', 'res_bnswish']
-        arch_cells['normal_pre'] = ['mconv_e3k5g0']
-        arch_cells['down_pre'] = ['mconv_e3k5g0']
-        arch_cells['normal_post'] = ['res_bnswish', 'res_bnswish']
-        arch_cells['up_post'] = ['res_bnswish', 'res_bnswish']
-        arch_cells['ar_nn'] = ['']
-    elif arch_type == 'mbconv_den':
+        arch_cells["normal_enc"] = ["mconv_e6k5g0"]
+        arch_cells["down_enc"] = ["mconv_e6k5g0"]
+        arch_cells["normal_dec"] = ["res_bnswish", "res_bnswish"]
+        arch_cells["up_dec"] = ["res_bnswish", "res_bnswish"]
+        arch_cells["normal_pre"] = ["mconv_e3k5g0"]
+        arch_cells["down_pre"] = ["mconv_e3k5g0"]
+        arch_cells["normal_post"] = ["res_bnswish", "res_bnswish"]
+        arch_cells["up_post"] = ["res_bnswish", "res_bnswish"]
+        arch_cells["ar_nn"] = [""]
+    elif arch_type == "mbconv_den":
         arch_cells = dict()
-        arch_cells['normal_enc'] = ['mconv_e6k5g0']
-        arch_cells['down_enc'] = ['mconv_e6k5g0']
-        arch_cells['normal_dec'] = ['mconv_e6k5g0']
-        arch_cells['up_dec'] = ['mconv_e6k5g0']
-        arch_cells['normal_pre'] = ['mconv_e3k5g8']
-        arch_cells['down_pre'] = ['mconv_e3k5g8']
-        arch_cells['normal_post'] = ['mconv_e3k5g8']
-        arch_cells['up_post'] = ['mconv_e3k5g8']
-        arch_cells['ar_nn'] = ['']
+        arch_cells["normal_enc"] = ["mconv_e6k5g0"]
+        arch_cells["down_enc"] = ["mconv_e6k5g0"]
+        arch_cells["normal_dec"] = ["mconv_e6k5g0"]
+        arch_cells["up_dec"] = ["mconv_e6k5g0"]
+        arch_cells["normal_pre"] = ["mconv_e3k5g8"]
+        arch_cells["down_pre"] = ["mconv_e3k5g8"]
+        arch_cells["normal_post"] = ["mconv_e3k5g8"]
+        arch_cells["up_post"] = ["mconv_e3k5g8"]
+        arch_cells["ar_nn"] = [""]
     else:
         raise NotImplementedError
 
     return arch_cells
 
 
-def groups_per_scale(num_scales, num_groups_per_scale, is_adaptive, divider=2, minimum_groups=1):
+def groups_per_scale(
+    num_scales, num_groups_per_scale, is_adaptive, divider=2, minimum_groups=1
+):
     g = []
     n = num_groups_per_scale
     for s in range(num_scales):
