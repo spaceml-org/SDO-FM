@@ -32,6 +32,8 @@ class SDOMLDataset(Dataset):
         freq,
         months,
         normalizations=None,
+        mask=None,
+        num_frames=1,
     ):
         """
         aligndata --> aligned indexes for input-output matching
@@ -44,6 +46,7 @@ class SDOMLDataset(Dataset):
         freq          --> str: cadence used for rounding time series
         transformation: to be applied to aia in theory, but can stay None here
         use_normalizations: to use or not use normalizations, e.g. if this is test data, we don't want to use normalizations
+        mask: to apply or not apply the HMI mask to AIA and HMI data
         """
 
         self.aligndata = aligndata
@@ -51,6 +54,8 @@ class SDOMLDataset(Dataset):
         self.aia_data = aia_data
         self.eve_data = eve_data
         self.hmi_data = hmi_data
+
+        self.mask = mask
 
         # Select alls
         self.components = components
@@ -82,8 +87,12 @@ class SDOMLDataset(Dataset):
             self.aligndata.index.month.isin(self.months), :
         ]
 
+        # number of frames to return per sample
+        self.num_frames = num_frames
+
     def __len__(self):
-        return self.aligndata.shape[0]
+        # report slightly smaller such that all frame sets requested are available
+        return self.aligndata.shape[0] - (self.num_frames - 1)
 
     def __getitem__(self, idx):
 
@@ -120,58 +129,79 @@ class SDOMLDataset(Dataset):
         # return image_stack, eve_data
 
     def get_aia_image(self, idx):
+        """Get AIA image for a given index.
+        Returns a numpy array of shape (num_wavelengths, num_frames, height, width).
+        """
         aia_image_dict = {}
         for wavelength in self.wavelengths:
-            idx_row_element = self.aligndata.iloc[idx]
-            idx_wavelength = idx_row_element[f"idx_{wavelength}"]
-            year = str(idx_row_element.name.year)
-            img = self.aia_data[year][wavelength][idx_wavelength, :, :]
-            # TODO: DO IT PROPERLY AND REMOVE THIS
-            # aia_image_dict[wavelength] = np.array((img, img, img))  # [:, 0, :, :]
-            aia_image_dict[wavelength] = img  # [:, 0, :, :]
-            # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+            aia_image_dict[wavelength] = []
+            for frame in range(self.num_frames):
+                idx_row_element = self.aligndata.iloc[idx + frame]
+                idx_wavelength = idx_row_element[f"idx_{wavelength}"]
+                year = str(idx_row_element.name.year)
+                img = self.aia_data[year][wavelength][idx_wavelength, :, :]
 
-            if self.normalizations:
-                aia_image_dict[wavelength] -= self.normalizations["AIA"][wavelength][
-                    "mean"
-                ]
-                aia_image_dict[wavelength] /= self.normalizations["AIA"][wavelength][
-                    "std"
-                ]
+                if self.mask is not None:
+                    img = img * self.mask
+
+                aia_image_dict[wavelength].append(img)
+
+                if self.normalizations:
+                    aia_image_dict[wavelength][-1] -= self.normalizations["AIA"][
+                        wavelength
+                    ]["mean"]
+                    aia_image_dict[wavelength][-1] /= self.normalizations["AIA"][
+                        wavelength
+                    ]["std"]
 
         aia_image = np.array(list(aia_image_dict.values()))
 
         return aia_image
 
     def get_eve(self, idx):
+        """Get EVE data for a given index.
+        Returns a numpy array of shape (num_ions, num_frames, ...).
+        """
         eve_ion_dict = {}
         for ion in self.ions:
-            idx_eve = self.aligndata.iloc[idx]["idx_eve"]
-            eve_ion_dict[ion] = self.eve_data[ion][idx_eve]
-            if self.normalizations:
-                eve_ion_dict[ion] -= self.normalizations["EVE"][ion]["mean"]
-                eve_ion_dict[ion] /= self.normalizations["EVE"][ion]["std"]
+            eve_ion_dict[ion] = []
+            for frame in range(self.num_frames):
+                idx_eve = self.aligndata.iloc[idx + frame]["idx_eve"]
+                eve_ion_dict[ion].append(self.eve_data[ion][idx_eve])
+                if self.normalizations:
+                    eve_ion_dict[ion][-1] -= self.normalizations["EVE"][ion]["mean"]
+                    eve_ion_dict[ion][-1] /= self.normalizations["EVE"][ion]["std"]
 
         eve_data = np.array(list(eve_ion_dict.values()), dtype=np.float32)
 
         return eve_data
 
     def get_hmi_image(self, idx):
+        """Get HMI image for a given index.
+        Returns a numpy array of shape (num_channels, num_frames, height, width).
+        """
         hmi_image_dict = {}
         for component in self.components:
-            idx_row_element = self.aligndata.iloc[idx]
-            idx_component = idx_row_element[f"idx_{self.components[0]}"]
-            year = str(idx_row_element.name.year)
-            hmi_image_dict[component] = self.hmi_data[year][component][
-                idx_component, :, :
-            ]
-            if self.normalizations:
-                hmi_image_dict[component] -= self.normalizations["HMI"][component][
-                    "mean"
-                ]
-                hmi_image_dict[component] /= self.normalizations["HMI"][component][
-                    "std"
-                ]
+            hmi_image_dict[component] = []
+            for frame in range(self.num_frames):
+                idx_row_element = self.aligndata.iloc[idx + frame]
+                idx_component = idx_row_element[f"idx_{self.components[0]}"]
+                year = str(idx_row_element.name.year)
+
+                img = self.hmi_data[year][component][idx_component, :, :]
+
+                if self.mask is not None:
+                    img = img * self.mask
+
+                hmi_image_dict[component].append(img)
+
+                if self.normalizations:
+                    hmi_image_dict[component][-1] -= self.normalizations["HMI"][
+                        component
+                    ]["mean"]
+                    hmi_image_dict[component][-1] /= self.normalizations["HMI"][
+                        component
+                    ]["std"]
 
         hmi_image = np.array(list(hmi_image_dict.values()))
 
@@ -215,6 +245,7 @@ class SDOMLDataModule(pl.LightningDataModule):
         test_months=[11, 12],
         holdout_months=[],
         cache_dir="",
+        apply_mask=True,
     ):
 
         super().__init__()
@@ -315,7 +346,7 @@ class SDOMLDataModule(pl.LightningDataModule):
             self.__aligntime()
         )  # Temporal alignment of hmi, aia and eve data
         self.normalizations = self.__calc_normalizations()
-        self.hmi_mask = self.__make_hmi_mask()
+        self.hmi_mask = self.__make_hmi_mask() if apply_mask else None
 
     def __str__(self):
         output = ""
@@ -724,6 +755,7 @@ class SDOMLDataModule(pl.LightningDataModule):
             self.cadence,
             self.train_months,
             normalizations=self.normalizations,
+            mask=self.hmi_mask.numpy(),
         )
 
         self.valid_ds = SDOMLDataset(
@@ -737,6 +769,7 @@ class SDOMLDataModule(pl.LightningDataModule):
             self.cadence,
             self.val_months,
             normalizations=self.normalizations,
+            mask=self.hmi_mask.numpy(),
         )
 
         self.test_ds = SDOMLDataset(
@@ -750,6 +783,7 @@ class SDOMLDataModule(pl.LightningDataModule):
             self.cadence,
             self.test_months,
             normalizations=self.normalizations,
+            mask=self.hmi_mask.numpy(),
         )
 
     def train_dataloader(self):

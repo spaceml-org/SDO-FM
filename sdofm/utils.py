@@ -3,6 +3,7 @@
 import collections
 import os
 import shutil
+import warnings
 
 import numpy as np
 import torch
@@ -225,3 +226,28 @@ class AttributeDict(dict):
     __slots__ = ()
     __getattr__ = dict.__getitem__
     __setattr__ = dict.__setitem__
+
+
+import astropy.units as u
+import sunpy.data.sample
+import sunpy.map
+from astropy.coordinates import SkyCoord
+from sunpy.coordinates.frames import HeliographicStonyhurst
+
+aiamap = sunpy.map.Map(
+    sunpy.data.sample.AIA_171_IMAGE
+)  # example image is loaded at 1024x1024
+
+
+def stonyhurst_to_patch_index(lat, lon, patch_size, img_w=512, img_h=512):
+    # Heliographic Stonyhurst coordinates to patch index
+    coord = SkyCoord(lat * u.deg, lon * u.deg, frame=HeliographicStonyhurst)
+    x, y = aiamap.wcs.world_to_pixel(coord)  # (x, y) in pixels
+    scale_x = 1024 / img_w
+    scale_y = 1024 / img_h
+    x, y = x / scale_x // patch_size, y / scale_y // patch_size
+    if img_w > 1024 or img_h > 1024:
+        warnings.warn(
+            "Loss of precision when over 1024 on coordinate converstion, consider upgrading reference image."
+        )
+    return torch.Tensor([x, y])
