@@ -9,7 +9,7 @@ import wandb
 
 from sdofm import utils
 from sdofm.datasets import SDOMLDataModule
-from sdofm.pretraining import MAE, NVAE
+from sdofm.pretraining import MAE, NVAE, SAMAE
 
 
 class Pretrainer(object):
@@ -53,6 +53,36 @@ class Pretrainer(object):
                     lr=cfg.model.opt.learning_rate,
                     weight_decay=cfg.model.opt.weight_decay,
                 )
+            case "samae":
+                data_module = SDOMLDataModule(
+                    hmi_path=None,
+                    aia_path=os.path.join(
+                        cfg.data.sdoml.base_directory, cfg.data.sdoml.sub_directory.aia
+                    ),
+                    eve_path=None,
+                    components=cfg.data.sdoml.components,
+                    wavelengths=cfg.data.sdoml.wavelengths,
+                    ions=cfg.data.sdoml.ions,
+                    frequency=cfg.data.sdoml.frequency,
+                    batch_size=cfg.model.opt.batch_size,
+                    num_workers=cfg.data.num_workers,
+                    val_months=cfg.data.month_splits.val,
+                    test_months=cfg.data.month_splits.test,
+                    holdout_months=cfg.data.month_splits.holdout,
+                    cache_dir=os.path.join(
+                        cfg.data.sdoml.base_directory,
+                        cfg.data.sdoml.sub_directory.cache,
+                    ),
+                )
+                data_module.setup()
+                model = SAMAE(
+                    **cfg.model.mae,
+                    **cfg.model.samae,
+                    optimiser=cfg.model.opt.optimiser,
+                    lr=cfg.model.opt.learning_rate,
+                    weight_decay=cfg.model.opt.weight_decay,
+                )
+
             case "nvae":
                 self.data_module = SDOMLDataModule(
                     hmi_path=os.path.join(
