@@ -14,8 +14,8 @@
 experiment:
   name: "default"
   project: "sdofm"
-  model: "mae"
-  task: "train" # options: train, evaluate (not implemented)
+  model: "samae"
+  task: "pretrain" # options: train, evaluate (not implemented)
   seed: 0
   disable_cuda: false
   disable_wandb: false
@@ -74,10 +74,10 @@ model:
   mae:
     img_size: 512
     patch_size: 16
-    num_frames: 5
-    tubelet_size: 5
+    num_frames: 1
+    tubelet_size: 1
     in_chans: 9
-    embed_dim: 4096
+    embed_dim: 128
     depth: 24
     num_heads: 16
     decoder_embed_dim: 512
@@ -135,7 +135,7 @@ model:
     loss: "mse" # options: "mae", "mse", "mape"
     scheduler: "constant" #other options: "cosine", "plateau", "exp"
     scheduler_warmup: 0
-    batch_size: 256
+    batch_size: 3
     learning_rate: 0.0001
     weight_decay: 3e-4 # 0.0
     optimiser: "adam"

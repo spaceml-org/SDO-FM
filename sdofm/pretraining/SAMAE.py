@@ -71,7 +71,7 @@ class SAMAE(BaseModule):
         loss, x_hat, mask = self.autoencoder(x)
         x_hat = self.autoencoder.unpatchify(x_hat)
         loss = F.mse_loss(x_hat, x)
-        self.log("train_loss", loss)
+        self.log("train_loss", loss, sync_dist=True)
         return loss
 
     def validation_step(self, batch, batch_idx):
@@ -79,4 +79,4 @@ class SAMAE(BaseModule):
         loss, x_hat, mask = self.autoencoder(x)
         x_hat = self.autoencoder.unpatchify(x_hat)
         loss = F.mse_loss(x_hat, x)
-        self.log("val_loss", loss)
+        self.log("val_loss", loss, sync_dist=True)

@@ -79,7 +79,7 @@ def main(cfg: DictConfig) -> None:
         config=flatten_dict(cfg),
     )
 
-    match cfg.experient.task:
+    match cfg.experiment.task:
         case "pretrain":
             from scripts.pretrain import Pretrainer
 

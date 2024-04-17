@@ -54,7 +54,7 @@ class Pretrainer(object):
                     weight_decay=cfg.model.opt.weight_decay,
                 )
             case "samae":
-                data_module = SDOMLDataModule(
+                self.data_module = SDOMLDataModule(
                     hmi_path=None,
                     aia_path=os.path.join(
                         cfg.data.sdoml.base_directory, cfg.data.sdoml.sub_directory.aia
@@ -74,8 +74,8 @@ class Pretrainer(object):
                         cfg.data.sdoml.sub_directory.cache,
                     ),
                 )
-                data_module.setup()
-                model = SAMAE(
+                self.data_module.setup()
+                self.model = SAMAE(
                     **cfg.model.mae,
                     **cfg.model.samae,
                     optimiser=cfg.model.opt.optimiser,
