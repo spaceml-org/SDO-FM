@@ -32,8 +32,4 @@ jobs:
           gcloud builds submit ../repo.tgz --tag ${{ secrets.GCP_ARTIFACT_REG }}/sdofm:${{ github.ref_name }}
       - name: "Create W&B job"
         run: |
-          cd ..
-          ls -hal
-          tar -cvzf repo.tgz SDO-FM
-          gcloud builds submit ../repo.tgz --tag ${{ secrets.GCP_ARTIFACT_REG }}/sdofm:${{ github.ref_name }}
-          wandb job create --project "${{ secrets.WANDB_PROJECT }}" --entity "${{ secrets.WANDB_ORG }}" --name "gha-${{ github.ref_name }}" --entry-point "scripts/test.py" image ${{ secrets.GCP_ARTIFACT_REG }}/sdofm:${{ github.ref_name }}
+          wandb job create --project "${{ secrets.WANDB_PROJECT }}" --entity "${{ secrets.WANDB_ORG }}" --name "GHA-SDO-FM" -g ${{ github.ref_name }}" -a ${{ github.ref_name }}" --entry-point "scripts/main.py --config-name=default" image ${{ secrets.GCP_ARTIFACT_REG }}/sdofm:${{ github.ref_name }}
