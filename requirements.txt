@@ -10,3 +10,6 @@ segmentation-models-pytorch
 einops
 lightning
 scipy
+astropy
+sunpy
+timm
