@@ -1,5 +1,7 @@
 # Adapted from:https://github.com/vale-salvatelli/sdo-autocal_pub/blob/master/src/sdo/pipelines/autocalibration_pipeline.py
 
+from typing import Optional
+
 import pytorch_lightning as pl
 import torch
 import torch.nn as nn
@@ -10,6 +12,7 @@ from ..models import (
     ConvTransformerTokensToEmbeddingNeck,
     MaskedAutoencoderViT3D,
     PrithviEncoder,
+    SolarAwareMaskedAutoencoderViT3D,
 )
 
 
@@ -76,19 +79,29 @@ class Autocalibration(BaseModule):
         mlp_ratio=4.0,
         norm_layer=nn.LayerNorm,
         norm_pix_loss=False,
+        # masking
+        masking_type="random",  # 'random' or 'solar_aware'
+        active_region_mu_degs=15.73,
+        active_region_std_degs=6.14,
+        active_region_scale=1.0,
+        active_region_abs_lon_max_degs=60,
+        active_region_abs_lat_max_degs=60,
         # Neck parameters
         num_neck_filters: int = 32,
         # Head parameters
         output_dim: int = 1,
         loss: str = "mse",
         freeze_encoder: bool = True,
+        # if finetuning
+        checkpoint_path: Optional[str] = None,
+        # all else
         *args,
         **kwargs,
     ):
         super().__init__(*args, **kwargs)
 
         # BACKBONE
-        self.mae = MaskedAutoencoderViT3D(
+        self.mae = SolarAwareMaskedAutoencoderViT3D(
             img_size,
             patch_size,
             num_frames,
@@ -103,7 +116,26 @@ class Autocalibration(BaseModule):
             mlp_ratio,
             norm_layer,
             norm_pix_loss,
+            masking_type,
+            active_region_mu_degs,
+            active_region_std_degs,
+            active_region_scale,
+            active_region_abs_lon_max_degs,
+            active_region_abs_lat_max_degs,
         )
+        if checkpoint_path is not None:
+            state_dict = torch.load(checkpoint_path, map_location=self.mae.device)
+
+            #            if num_frames != 3:
+            #                del state_dict["pos_embed"]
+            #                del state_dict["decoder_pos_embed"]
+            #
+            #            if in_chans != 6:
+            #                del state_dict["patch_embed.proj.weight"]
+            #                del state_dict["decoder_pred.weight"]
+            #                del state_dict["decoder_pred.bias"]
+
+            self.mae.load_state_dict(state_dict, strict=False)
 
         self.encoder = PrithviEncoder(self.mae)
 

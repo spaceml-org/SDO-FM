@@ -51,9 +51,11 @@ class PatchEmbed(nn.Module):
         self.norm = norm_layer(embed_dim) if norm_layer else nn.Identity()
 
     def forward(self, x):
-        B, C, T, H, W = x.shape  # batch channels rgb height width
+        B, C, T, H, W = x.shape  # batch channels frames height width
+        print("input dim", x.shape)
         x = self.proj(x)
-        # The output size is (B, N, D), where N=H*W/P/P, D is embid_dim
+        print("proj dim", x.shape)
+        # The output size is (B, L, C), where N=H*W/T/T, C is embid_dim
         if self.flatten:
             x = x.flatten(2).transpose(1, 2)  # B,C,T,H,W -> B,C,L=(T*H*W) -> B,L,C
         x = self.norm(x)
@@ -219,6 +221,7 @@ class MaskedAutoencoderViT3D(nn.Module):
         x: [N, L, D], sequence
         """
         N, L, D = x.shape  # batch, length, dim
+        print("x shape when masking", x.shape)
         len_keep = int(L * (1 - mask_ratio))
 
         noise = torch.rand(N, L, device=x.device)  # noise in [0, 1]
@@ -244,6 +247,7 @@ class MaskedAutoencoderViT3D(nn.Module):
     def forward_encoder(self, x, mask_ratio):
         # embed patches
         x = self.patch_embed(x)
+        print("patch_embed dim", x.shape)
 
         # add pos embed w/o cls token
         x = x + self.pos_embed[:, 1:, :]

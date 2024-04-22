@@ -124,7 +124,7 @@ class Pretrainer(object):
     def run(self):
         print("\nPRE-TRAINING\n")
 
-        if self.cfg.experiment.distributed:
+        if self.cfg.experiment.distributed.enabled:
             trainer = pl.Trainer(
                 devices=self.cfg.experiment.distributed.world_size,
                 accelerator=self.cfg.experiment.accelerator,

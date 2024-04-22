@@ -35,6 +35,8 @@ class SAMAE(BaseModule):
         active_region_scale=1.0,
         active_region_abs_lon_max_degs=60,
         active_region_abs_lat_max_degs=60,
+        #
+        checkpoint_path=None,
         # pass to BaseModule
         *args,
         **kwargs
@@ -63,7 +65,21 @@ class SAMAE(BaseModule):
             active_region_abs_lon_max_degs,
             active_region_abs_lat_max_degs,
         )
-        # self.autoencoder = PrithviEncoder(self.mae)
+        if checkpoint_path is not None:
+            state_dict = torch.load(
+                checkpoint_path, map_location=self.autoencoder.device
+            )
+
+            #            if num_frames != 3:
+            #                del state_dict["pos_embed"]
+            #                del state_dict["decoder_pos_embed"]
+            #
+            #            if in_chans != 6:
+            #                del state_dict["patch_embed.proj.weight"]
+            #                del state_dict["decoder_pred.weight"]
+            #                del state_dict["decoder_pred.bias"]
+
+            self.autoencoder.load_state_dict(state_dict, strict=False)
 
     def training_step(self, batch, batch_idx):
         # training_step defines the train loop.
@@ -80,3 +96,11 @@ class SAMAE(BaseModule):
         x_hat = self.autoencoder.unpatchify(x_hat)
         loss = F.mse_loss(x_hat, x)
         self.log("val_loss", loss, sync_dist=True)
+
+    def forward(self, x):
+        loss, x_hat, mask = self.autoencoder(x)
+        x_hat = self.autoencoder.unpatchify(x_hat)
+        return loss, x_hat, mask
+
+    def predict_step(self, batch):  # loss, x_hat, mask
+        return self(batch)

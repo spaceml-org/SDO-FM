@@ -77,8 +77,40 @@ python scripts/main.py --config-name=dimming_tiny
 ### Science objective 3: TBD
 
 
-## Additional Documentation
-TODO
+## Development
+### Training a model in GCP Vertex
+To train a model in the cloud start by branching off main and prepare your model and experiment configuration.
+```bash
+git branch -b <NEW_EXPERIMENT>
+cd SDO-FM
+cp experiments/default.yaml <NEW_EXPERIMENT_CONFIG>.yaml
+```
+Once ready commit your changes and tag it with a version number of the format `v*.*.*`, e.g. `v0.1.2`
+```bash
+git add .
+git commit -m "Added <NEW EXPERIMENT>"
+git tag v0.1.2
+git push -u origin <NEW_EXPERIMENT>
+git push --tags
+```
+This will trigger an action to build this repository state in Google Cloud Build, it takes around 10 mins :tea:. Once completed it will be available in W&B as a job [here](https://wandb.ai/fdlx/sdofm/jobs). To run it, select "Launch" and define your overrides, e.g.
+```yaml
+{
+    "args": [
+        "--config-name=<NEW_EXPERIMENT_CONFIG>",
+        "experiment_name=<NEW_EXPERIMENT_RUN>",
+    ],
+    "run_config": {},
+    "entry_point": ["/src/scripts/main.py"]
+}
+```
+Set your compute resources abiding by [this table](https://cloud.google.com/vertex-ai/docs/training/configure-compute), e.g.
+```yaml
+MACHINE_TYPE: a2-ultragpu-8g
+ACCELERATOR_TYPE: NVIDIA_A100_80GB
+ACCELERATOR_COUNT: 8
+```
+
 
 ## Citation 
 ```bib

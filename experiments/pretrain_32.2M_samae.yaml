@@ -60,7 +60,7 @@ data:
     sub_directory:
       hmi: "HMI.zarr"
       aia: "AIA.zarr"
-      eve: EVE_legacy.zarr"
+      eve: "EVE_legacy.zarr"
       cache: "cache"
     components: null # null for select all magnetic components ["Bx", "By", "Bz"]
     wavelengths: null # null for select all wavelengths channels ["131A","1600A","1700A","171A","193A","211A","304A","335A","94A"]
