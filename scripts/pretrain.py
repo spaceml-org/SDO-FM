@@ -4,6 +4,7 @@ import os
 from pathlib import Path
 
 import pytorch_lightning as pl
+
 import torch
 import wandb
 
@@ -13,12 +14,13 @@ from sdofm.pretraining import MAE, NVAE, SAMAE
 
 
 class Pretrainer(object):
-    def __init__(self, cfg, logger):
+    def __init__(self, cfg, logger=None, profiler=None):
         self.cfg = cfg
-        self.logger = logger
+        self.logger = None # would be wandb but broken
+        self.profiler = profiler # if profiler is not None else Profiler()
         self.data_module = None
         self.model = None
-
+            
         match cfg.experiment.model:
             case "mae":
                 self.data_module = SDOMLDataModule(
@@ -124,13 +126,13 @@ class Pretrainer(object):
     def run(self):
         print("\nPRE-TRAINING\n")
 
-        if self.cfg.experiment.distributed:
+        if self.cfg.experiment.distributed.enabled:
             trainer = pl.Trainer(
                 devices=self.cfg.experiment.distributed.world_size,
                 accelerator=self.cfg.experiment.accelerator,
                 max_epochs=self.cfg.model.opt.epochs,
                 precision=self.cfg.experiment.precision,
-                logger=self.logger,
+                profiler=self.profiler
             )
         else:
             trainer = pl.Trainer(
