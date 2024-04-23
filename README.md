@@ -77,8 +77,12 @@ python scripts/main.py --config-name=dimming_tiny
 ### Science objective 3: TBD
 
 
-## Additional Documentation
-TODO
+## Development
+To port forward a TPU VM to view the tensorboard locally
+```bash
+gcloud compute tpus tpu-vm ssh "$TPU_NAME" --zone="$GCP_ZONE" --ssh-flag="-4 -L 6006:localhost:6006"
+```
+The profiler can then be accessed at [http://localhost:6006/?darkMode=true#profile](http://localhost:6006/?darkMode=true#profile).
 
 ## Citation 
 ```bib

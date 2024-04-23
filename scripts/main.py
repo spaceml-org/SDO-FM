@@ -42,7 +42,7 @@ def main(cfg: DictConfig) -> None:
                 warnings.warn("CUDA not available, reverting to CPU!")
             profiler = Profiler()
         case "tpu":
-            profiler = XLAProfiler(port=9012)
+            profiler = XLAProfiler(port=9000)
 
     # set precision of torch tensors
     if cfg.experiment.accelerator == "cuda":
@@ -53,7 +53,7 @@ def main(cfg: DictConfig) -> None:
                 torch.set_default_tensor_type(torch.FloatTensor)
             case _:
                 raise NotImplementedError(
-                    f"Precision {cfg.experiment.precision} not implemented"
+                    f"Precision {cfg.experiment.precision} not implemented for cuda."
                 )
 
     # run experiment

@@ -132,7 +132,9 @@ class Pretrainer(object):
                 accelerator=self.cfg.experiment.accelerator,
                 max_epochs=self.cfg.model.opt.epochs,
                 precision=self.cfg.experiment.precision,
-                profiler=self.profiler
+                # profiler=self.profiler,
+                # strategy="xla_debug",
+                # callbacks=[pl.callbacks.DeviceStatsMonitor()]
             )
         else:
             trainer = pl.Trainer(
