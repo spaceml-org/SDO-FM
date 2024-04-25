@@ -13,3 +13,5 @@ scipy
 astropy
 sunpy
 timm
+numpy
+torch~=2.2.0
