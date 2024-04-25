@@ -38,7 +38,6 @@ SDO-FM is envisioned as a ‘multi-modal’ foundation model, integrating instru
 | Masked Autoencoders Are Scalable Vision Learners 	| He, Kaiming, et al. "Masked autoencoders are scalable vision learners." Proceedings of the IEEE/CVF conference on computer vision and pattern recognition. 2022 ([link](https://openaccess.thecvf.com/content/CVPR2022/papers/He_Masked_Autoencoders_Are_Scalable_Vision_Learners_CVPR_2022_paper.pdf))	|
 | Foundation Models for Generalist Geospatial Artificial Intelligence (Prithvi) 	| Jakubik, Johannes, et al. "Foundation models for generalist geospatial artificial intelligence." arXiv preprint arXiv:2310.18660 (2023) ([link](https://arxiv.org/pdf/2310.18660.pdf)) 	|
 | NVAE: A Deep Hierarchical Variational Autoencoder 	| Vahdat, Arash, and Jan Kautz. "NVAE: A deep hierarchical variational autoencoder." Advances in neural information processing systems 33 (2020): 19667-19679 ([link](https://arxiv.org/abs/2007.03898))    |
-| StyleSwin: Transformer-Based GAN for High-Resolution Image Generation | Zhang, Bowen, et al. "Styleswin: Transformer-based gan for high-resolution image generation." Proceedings of the IEEE/CVF conference on computer vision and pattern recognition. 2022 ([link](https://openaccess.thecvf.com/content/CVPR2022/html/Zhang_StyleSwin_Transformer-Based_GAN_for_High-Resolution_Image_Generation_CVPR_2022_paper.html)) |
 
 ### Heads
 | Name 	| Paper	|
