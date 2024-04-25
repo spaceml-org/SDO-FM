@@ -34,6 +34,8 @@ class SDOMLDataset(Dataset):
         normalizations=None,
         mask=None,
         num_frames=1,
+        min_date=None,
+        max_date=None,
     ):
         """
         aligndata --> aligned indexes for input-output matching
@@ -86,6 +88,17 @@ class SDOMLDataset(Dataset):
         self.aligndata = self.aligndata.loc[
             self.aligndata.index.month.isin(self.months), :
         ]
+
+        # if data filter, apply
+        if min_date and max_date:
+            if min_date < pd.to_datetime(
+                "2010-09-09 00:00:11.08"
+            ) or max_date > pd.to_datetime("2023-05-26 06:36:08.072"):
+                raise ValueError("SDOML date range is not available. ")
+
+            self.aligndata = self.aligndata[
+                (self.aligndata.index >= min_date) & (self.aligndata.index <= max_date)
+            ]
 
         # number of frames to return per sample
         self.num_frames = num_frames
@@ -246,6 +259,8 @@ class SDOMLDataModule(pl.LightningDataModule):
         holdout_months=[],
         cache_dir="",
         apply_mask=True,
+        min_date=None,
+        max_date=None,
     ):
 
         super().__init__()
@@ -261,6 +276,8 @@ class SDOMLDataModule(pl.LightningDataModule):
         self.test_months = test_months
         self.holdout_months = holdout_months
         self.cache_dir = cache_dir
+        self.min_date = pd.to_datetime(min_date) if min_date is not None else None
+        self.max_date = pd.to_datetime(max_date) if max_date is not None else None
         self.isAIA = True if self.aia_path is not None else False
         self.isHMI = True if self.hmi_path is not None else False
         self.isEVE = True if self.eve_path is not None else False
@@ -756,6 +773,8 @@ class SDOMLDataModule(pl.LightningDataModule):
             self.train_months,
             normalizations=self.normalizations,
             mask=self.hmi_mask.numpy(),
+            min_date=self.min_date,
+            max_date=self.max_date,
         )
 
         self.valid_ds = SDOMLDataset(
@@ -770,6 +789,8 @@ class SDOMLDataModule(pl.LightningDataModule):
             self.val_months,
             normalizations=self.normalizations,
             mask=self.hmi_mask.numpy(),
+            min_date=self.min_date,
+            max_date=self.max_date,
         )
 
         self.test_ds = SDOMLDataset(
@@ -784,6 +805,8 @@ class SDOMLDataModule(pl.LightningDataModule):
             self.test_months,
             normalizations=self.normalizations,
             mask=self.hmi_mask.numpy(),
+            min_date=self.min_date,
+            max_date=self.max_date,
         )
 
     def train_dataloader(self):

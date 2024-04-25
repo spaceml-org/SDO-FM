@@ -44,6 +44,8 @@ class Pretrainer(object):
                         self.cfg.data.sdoml.base_directory,
                         self.cfg.data.sdoml.sub_directory.cache,
                     ),
+                    min_date=cfg.data.min_date,
+                    max_date=cfg.data.max_date,
                 )
                 self.data_module.setup()
 
@@ -73,6 +75,8 @@ class Pretrainer(object):
                         cfg.data.sdoml.base_directory,
                         cfg.data.sdoml.sub_directory.cache,
                     ),
+                    min_date=cfg.data.min_date,
+                    max_date=cfg.data.max_date,
                 )
                 self.data_module.setup()
                 self.model = SAMAE(
@@ -107,6 +111,8 @@ class Pretrainer(object):
                         self.cfg.data.sdoml.base_directory,
                         self.cfg.data.sdoml.sub_directory.cache,
                     ),
+                    min_date=cfg.data.min_date,
+                    max_date=cfg.data.max_date,
                 )
 
                 self.model = NVAE(

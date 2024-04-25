@@ -41,6 +41,8 @@ class Finetuner(object):
                         self.cfg.data.sdoml.base_directory,
                         self.cfg.data.sdoml.sub_directory.cache,
                     ),
+                    min_date=cfg.data.min_date,
+                    max_date=cfg.data.max_date,
                 )
                 self.data_module.setup()
 
