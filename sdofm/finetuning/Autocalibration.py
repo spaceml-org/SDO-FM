@@ -1,6 +1,6 @@
 # Adapted from:https://github.com/vale-salvatelli/sdo-autocal_pub/blob/master/src/sdo/pipelines/autocalibration_pipeline.py
 
-import pytorch_lightning as pl
+import lighting.pytorch as pl
 import torch
 import torch.nn as nn
 
