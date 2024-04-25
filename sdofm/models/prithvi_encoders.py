@@ -4,7 +4,7 @@
 import os
 from typing import Optional
 
-import lighting.pytorch as pl
+import lightning.pytorch as pl
 import segmentation_models_pytorch as smp
 import torch
 import torch.nn as nn

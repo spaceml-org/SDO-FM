@@ -8,7 +8,7 @@ import dask
 import dask.array as da
 import numpy as np
 import pandas as pd
-import lighting.pytorch as pl
+import lightning.pytorch as pl
 import torch
 import zarr
 from dask.array import stats

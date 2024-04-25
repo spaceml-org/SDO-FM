@@ -12,9 +12,9 @@ import numpy as np
 import torch
 import wandb
 from omegaconf import DictConfig, OmegaConf
-from lighting.pytorch import seed_everything
-from lighting.pytorch.loggers.wandb import WandbLogger
-from lighting.pytorch.profilers import XLAProfiler, Profiler
+from lightning.pytorch import seed_everything
+from lightning.pytorch.loggers.wandb import WandbLogger
+from lightning.pytorch.profilers import XLAProfiler, Profiler
 import warnings
 
 from sdofm import utils  # import days_hours_mins_secs_str

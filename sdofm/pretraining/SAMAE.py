@@ -1,6 +1,6 @@
 import time
 
-import lighting.pytorch as pl
+import lightning.pytorch as pl
 import torch
 import torch.nn as nn
 import torch.nn.functional as F

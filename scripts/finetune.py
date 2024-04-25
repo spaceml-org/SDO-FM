@@ -3,7 +3,7 @@
 import os
 from pathlib import Path
 
-import lighting.pytorch as pl
+import lightning.pytorch as pl
 import torch
 import wandb
 

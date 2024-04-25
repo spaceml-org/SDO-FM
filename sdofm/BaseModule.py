@@ -1,4 +1,4 @@
-import lighting.pytorch as pl
+import lightning.pytorch as pl
 import torch
 
 
