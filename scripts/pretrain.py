@@ -16,7 +16,7 @@ from sdofm.pretraining import MAE, NVAE, SAMAE
 class Pretrainer(object):
     def __init__(self, cfg, logger=None, profiler=None):
         self.cfg = cfg
-        self.logger = None # would be wandb but broken
+        self.logger = logger # would be wandb but broken
         self.profiler = profiler # if profiler is not None else Profiler()
         self.data_module = None
         self.model = None
@@ -132,7 +132,7 @@ class Pretrainer(object):
                 accelerator=self.cfg.experiment.accelerator,
                 max_epochs=self.cfg.model.opt.epochs,
                 precision=self.cfg.experiment.precision,
-                # profiler=self.profiler,
+                profiler=self.profiler,
                 # strategy="xla_debug",
                 # callbacks=[pl.callbacks.DeviceStatsMonitor()]
             )

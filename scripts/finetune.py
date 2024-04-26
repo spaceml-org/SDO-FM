@@ -13,8 +13,10 @@ from sdofm.finetuning import Autocalibration
 
 
 class Finetuner(object):
-    def __init__(self, cfg):
+    def __init__(self, cfg, logger=None, profiler=None):
         self.cfg = cfg
+        self.logger = logger
+        self.profiler = profiler
         self.trainer = None
         self.data_module = None
         self.model = None

@@ -35,14 +35,16 @@ def main(cfg: DictConfig) -> None:
     seed_everything(cfg.experiment.seed)
 
     # set device using config disable_cuda option and torch.cuda.is_available()
-    match cfg.experiment.accelerator:
-        case "cuda":
-            if (not cfg.experiment.disable_cuda) and torch.cuda.is_available():
-                cfg.experiment.device ="cpu"
-                warnings.warn("CUDA not available, reverting to CPU!")
-            profiler = Profiler()
-        case "tpu":
-            profiler = XLAProfiler(port=9000)
+    profiler = None
+    if cfg.experiment.profiler:
+        match cfg.experiment.accelerator:
+            case "cuda":
+                if (not cfg.experiment.disable_cuda) and torch.cuda.is_available():
+                    cfg.experiment.device ="cpu"
+                    warnings.warn("CUDA not available, reverting to CPU!")
+                profiler = Profiler()
+            case "tpu":
+                profiler = XLAProfiler(port=9014)
 
     # set precision of torch tensors
     if cfg.experiment.accelerator == "cuda":
@@ -102,7 +104,7 @@ def main(cfg: DictConfig) -> None:
         case "finetune":
             from scripts.finetune import Finetuner
 
-            finetuner = Finetuner(cfg, logger=logger)
+            finetuner = Finetuner(cfg, logger=logger, profiler=profiler)
             finetuner.run()
         case _:
             raise NotImplementedError(

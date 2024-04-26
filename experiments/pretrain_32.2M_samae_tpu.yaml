@@ -33,6 +33,7 @@ experiment:
   log_n_batches: 1000 # log every n training batches
   save_results: true  # save full results to file and wandb
   accelerator: "tpu"  # options are "auto", "gpu", "tpu", "ipu", or "cpu"
+  profiler: false      # options are true/false Warning: XLA for TPUs only works on single world size
   distributed:
     enabled: true
     #backend: "ddp"
@@ -53,7 +54,7 @@ data:
     val: [11]
     test: [12]
     holdout: []
-  num_workers: 32    # set appropriately for your machine
+  num_workers: 4    # set appropriately for your machine
   output_directory: "output"
   sdoml:
     base_directory: "/mnt/sdoml"
@@ -134,7 +135,7 @@ model:
     loss: "mse" # options: "mae", "mse", "mape"
     scheduler: "constant" #other options: "cosine", "plateau", "exp"
     scheduler_warmup: 0
-    batch_size: 8
+    batch_size: 24
     learning_rate: 0.0001
     weight_decay: 3e-4 # 0.0
     optimiser: "adam"
@@ -143,9 +144,9 @@ model:
 
 # hydra configuration
 hydra:
-  mode: MULTIRUN
-  run:
-    dir: ${data.output_directory}/${now:%Y-%m-%d-%H-%M-%S}
-  sweep:
-    dir: ${hydra.run.dir}
-    subdir: ${hydra.job.num}
+  mode: RUN
+  # run:
+  #   dir: ${data.output_directory}/${now:%Y-%m-%d-%H-%M-%S}
+  # sweep:
+  #   dir: ${hydra.run.dir}
+  #   subdir: ${hydra.job.num}
