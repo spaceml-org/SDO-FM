@@ -336,10 +336,14 @@ class SolarAwareMaskedAutoencoderViT3D(nn.Module):
         )
 
         # randomly set half of latitudes as positive or negative for hemiphere then add equator patch location
-        random_hemisphere = torch.floor(torch.rand((N, L), device=x.device) * (2)).to(
+        hemispheres = torch.Tensor([-1,1], device=x.device).to(
             dtype=torch.int64
         )
-        random_hemisphere[random_hemisphere == 0] = -1
+        random_hemisphere = torch.randint(0,2, (N, L), device=x.device) * (2).to(
+            dtype=torch.int64
+        )
+        # random_hemisphere[random_hemisphere == 0] = -1
+        random_hemisphere = hemispheres[random_hemisphere]
         random_lats = torch.clamp(
             random_hemisphere * normal_lats + self.ARdists_middle_patch[0],
             min=self.ARdists_min_lat_patch,
