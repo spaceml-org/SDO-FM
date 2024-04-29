@@ -4,6 +4,7 @@ import math
 
 import numpy as np
 import torch
+from overrides import override
 
 from .SDOML import SDOMLDataModule, SDOMLDataset
 
@@ -53,6 +54,11 @@ class DegradedSDOMLDataset(SDOMLDataset):
         # This Dataset is only for use on AIA
         self.num_channels = len(self.wavelengths)
 
+        if args.hmi_data is not None or args.eve_data is not None:
+            raise NotImplementedError(
+                "Degraded SDOML dataloader is designed for AIA only."
+            )
+
     def __getitem__(self, idx):
         orig_img = torch.Tensor(super().__getitem__(idx))
 
@@ -87,9 +93,26 @@ class DegradedSDOMLDataset(SDOMLDataset):
 
 
 class DegradedSDOMLDataModule(SDOMLDataModule):
-    def __init__(self, *args, **kwargs):
+    def __init__(
+        self,
+        *args,
+        threshold_black: bool = False,
+        noise_image: bool = False,
+        flip_test_images: bool = False,
+        threshold_black_value: float = 0.0,
+        min_alpha: float = 0.0,
+        max_alpha: float = 1.0,
+        **kwargs
+    ):
         super().__init__(*args, **kwargs)
+        self.threshold_black = threshold_black
+        self.noise_image = noise_image
+        self.flip_test_images = flip_test_images
+        self.threshold_black_value = threshold_black_value
+        self.min_alpha = min_alpha
+        self.max_alpha = max_alpha
 
+    @override
     def setup(self, stage=None):
         self.train_ds = DegradedSDOMLDataset(
             self.aligndata,
@@ -102,6 +125,13 @@ class DegradedSDOMLDataModule(SDOMLDataModule):
             self.cadence,
             self.train_months,
             normalizations=self.normalizations,
+            # Degraded
+            threshold_black=self.threshold_black,
+            noise_image=self.noise_image,
+            flip_test_images=self.flip_test_images,
+            threshold_black_value=self.threshold_black_value,
+            min_alpha=self.min_alpha,
+            max_alpha=self.max_alpha,
         )
 
         self.valid_ds = DegradedSDOMLDataset(
@@ -115,6 +145,13 @@ class DegradedSDOMLDataModule(SDOMLDataModule):
             self.cadence,
             self.val_months,
             normalizations=self.normalizations,
+            # Degraded
+            threshold_black=self.threshold_black,
+            noise_image=self.noise_image,
+            flip_test_images=self.flip_test_images,
+            threshold_black_value=self.threshold_black_value,
+            min_alpha=self.min_alpha,
+            max_alpha=self.max_alpha,
         )
 
         self.test_ds = DegradedSDOMLDataset(
@@ -128,4 +165,11 @@ class DegradedSDOMLDataModule(SDOMLDataModule):
             self.cadence,
             self.test_months,
             normalizations=self.normalizations,
+            # Degraded
+            threshold_black=self.threshold_black,
+            noise_image=self.noise_image,
+            flip_test_images=self.flip_test_images,
+            threshold_black_value=self.threshold_black_value,
+            min_alpha=self.min_alpha,
+            max_alpha=self.max_alpha,
         )
