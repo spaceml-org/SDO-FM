@@ -30,7 +30,7 @@ def create_noise_image(
     return results
 
 
-class DimmedSDOMLDataset(SDOMLDataset):
+class DegradedSDOMLDataset(SDOMLDataset):
     def __init__(
         self,
         *args,
@@ -66,11 +66,11 @@ class DimmedSDOMLDataset(SDOMLDataset):
             orig_img = torch.flip(orig_img, [2])
 
         if self.noise_image:
-            dimmed_img = create_noise_image(
+            degraded_img = create_noise_image(
                 self.num_channels, self.scaled_height, self.scaled_width
             )
         else:
-            dimmed_img = orig_img.clone()
+            degraded_img = orig_img.clone()
 
         SAFETY = 1000
         dim_factor = torch.zeros(self.num_channels)
@@ -79,19 +79,19 @@ class DimmedSDOMLDataset(SDOMLDataset):
             SAFETY -= 1
 
         for c in range(self.num_channels):
-            dimmed_img[c] = dimmed_img[c] * dim_factor[c]
+            degraded_img[c] = degraded_img[c] * dim_factor[c]
 
         # Note: For efficiency reasons, don't send each item to the GPU;
         # rather, later, send the entire batch to the GPU.
-        return dimmed_img, dim_factor, orig_img
+        return degraded_img, dim_factor, orig_img
 
 
-class DimmedSDOMLDataModule(SDOMLDataModule):
+class DegradedSDOMLDataModule(SDOMLDataModule):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
     def setup(self, stage=None):
-        self.train_ds = DimmedSDOMLDataset(
+        self.train_ds = DegradedSDOMLDataset(
             self.aligndata,
             self.hmi_data,
             self.aia_data,
@@ -104,7 +104,7 @@ class DimmedSDOMLDataModule(SDOMLDataModule):
             normalizations=self.normalizations,
         )
 
-        self.valid_ds = DimmedSDOMLDataset(
+        self.valid_ds = DegradedSDOMLDataset(
             self.aligndata,
             self.hmi_data,
             self.aia_data,
@@ -117,7 +117,7 @@ class DimmedSDOMLDataModule(SDOMLDataModule):
             normalizations=self.normalizations,
         )
 
-        self.test_ds = DimmedSDOMLDataset(
+        self.test_ds = DegradedSDOMLDataset(
             self.aligndata,
             self.hmi_data,
             self.aia_data,
