@@ -18,7 +18,7 @@ experiment:
   task: "pretrain" # options: train, evaluate (not implemented)
   seed: 0
   disable_cuda: false
-  disable_wandb: true
+  disable_wandb: false
   wandb:
     entity: "fdlx"
     group: "sdofm-phase1"
@@ -75,7 +75,7 @@ model:
   mae:
     img_size: 512
     patch_size: 16
-    num_frames: 1
+    num_frames: 5
     tubelet_size: 1
     in_chans: 9
     embed_dim: 128
