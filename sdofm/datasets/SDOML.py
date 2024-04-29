@@ -259,6 +259,7 @@ class SDOMLDataModule(pl.LightningDataModule):
         holdout_months=[],
         cache_dir="",
         apply_mask=True,
+        num_frames=1,
         min_date=None,
         max_date=None,
     ):
@@ -276,6 +277,7 @@ class SDOMLDataModule(pl.LightningDataModule):
         self.test_months = test_months
         self.holdout_months = holdout_months
         self.cache_dir = cache_dir
+        self.num_frames = num_frames
         self.min_date = pd.to_datetime(min_date) if min_date is not None else None
         self.max_date = pd.to_datetime(max_date) if max_date is not None else None
         self.isAIA = True if self.aia_path is not None else False
@@ -773,6 +775,7 @@ class SDOMLDataModule(pl.LightningDataModule):
             self.train_months,
             normalizations=self.normalizations,
             mask=self.hmi_mask.numpy(),
+            num_frames=self.num_frames,
             min_date=self.min_date,
             max_date=self.max_date,
         )
@@ -789,6 +792,7 @@ class SDOMLDataModule(pl.LightningDataModule):
             self.val_months,
             normalizations=self.normalizations,
             mask=self.hmi_mask.numpy(),
+            num_frames=self.num_frames,
             min_date=self.min_date,
             max_date=self.max_date,
         )
@@ -805,6 +809,7 @@ class SDOMLDataModule(pl.LightningDataModule):
             self.test_months,
             normalizations=self.normalizations,
             mask=self.hmi_mask.numpy(),
+            num_frames=self.num_frames,
             min_date=self.min_date,
             max_date=self.max_date,
         )
