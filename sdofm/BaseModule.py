@@ -1,4 +1,4 @@
-import pytorch_lightning as pl
+import lightning.pytorch as pl
 import torch
 
 
@@ -11,6 +11,7 @@ class BaseModule(pl.LightningModule):
         # pass to pl.LightningModule
     ):
         super().__init__()
+        self.save_hyperparameters()
 
         # optimiser values
         self.optimiser = optimiser

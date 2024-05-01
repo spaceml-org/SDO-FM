@@ -3,7 +3,8 @@
 import os
 from pathlib import Path
 
-import pytorch_lightning as pl
+import lightning.pytorch as pl
+
 import torch
 import wandb
 
@@ -13,9 +14,10 @@ from sdofm.pretraining import MAE, NVAE, SAMAE
 
 
 class Pretrainer(object):
-    def __init__(self, cfg, logger):
+    def __init__(self, cfg, logger=None, profiler=None):
         self.cfg = cfg
-        self.logger = logger
+        self.logger = logger  # would be wandb but broken
+        self.profiler = profiler  # if profiler is not None else Profiler()
         self.data_module = None
         self.model = None
 
@@ -46,6 +48,7 @@ class Pretrainer(object):
                     ),
                     min_date=cfg.data.min_date,
                     max_date=cfg.data.max_date,
+                    num_frames=cfg.model.mae.num_frames,
                 )
                 self.data_module.setup()
 
@@ -77,6 +80,7 @@ class Pretrainer(object):
                     ),
                     min_date=cfg.data.min_date,
                     max_date=cfg.data.max_date,
+                    num_frames=cfg.model.mae.num_frames,
                 )
                 self.data_module.setup()
                 self.model = SAMAE(
@@ -136,6 +140,7 @@ class Pretrainer(object):
                 accelerator=self.cfg.experiment.accelerator,
                 max_epochs=self.cfg.model.opt.epochs,
                 precision=self.cfg.experiment.precision,
+                profiler=self.profiler,
                 logger=self.logger,
                 strategy=self.cfg.experiment.strategy,
             )
