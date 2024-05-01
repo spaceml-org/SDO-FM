@@ -8,7 +8,7 @@ import dask
 import dask.array as da
 import numpy as np
 import pandas as pd
-import pytorch_lightning as pl
+import lightning.pytorch as pl
 import torch
 import zarr
 from dask.array import stats
@@ -50,6 +50,7 @@ class SDOMLDataset(Dataset):
         use_normalizations: to use or not use normalizations, e.g. if this is test data, we don't want to use normalizations
         mask: to apply or not apply the HMI mask to AIA and HMI data
         """
+        super().__init__()
 
         self.aligndata = aligndata
 
@@ -762,7 +763,7 @@ class SDOMLDataModule(pl.LightningDataModule):
         return hmi_mask
 
     def setup(self, stage=None):
-        print("this", self.num_frames)
+        
         self.train_ds = SDOMLDataset(
             self.aligndata,
             self.hmi_data,

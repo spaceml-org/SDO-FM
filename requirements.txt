@@ -8,10 +8,11 @@ zarr
 pandas
 segmentation-models-pytorch 
 einops
-lightning
+lightning[extra]
 scipy
 astropy
 sunpy
 timm
 numpy
 torch~=2.2.0
+tensorrt

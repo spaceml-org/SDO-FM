@@ -47,14 +47,14 @@ experiment:
 
 # dataset configuration
 data:
-  min_date: "0000-00-00 00:00:00" # NOT IMPLEMENTED # minimum is '2010-09-09 00:00:11.08'
-  max_date: "0000-00-00 00:00:00" # NOT IMPLEMENTED # maximum is '2023-05-26 06:36:08.072'
+  min_date: '2010-09-09 00:00:11.08' # NOT IMPLEMENTED # minimum is '2010-09-09 00:00:11.08'
+  max_date: '2011-09-09 00:00:11.08' # NOT IMPLEMENTED # maximum is '2023-05-26 06:36:08.072'
   month_splits: # non selected months will form training set 
     # train: [1,2,3,4,5,6,7,8,9,10]
     val: [11]
     test: [12]
     holdout: []
-  num_workers: 4    # set appropriately for your machine
+  num_workers: 8    # set appropriately for your machine
   output_directory: "output"
   sdoml:
     base_directory: "/mnt/sdoml"
@@ -75,7 +75,7 @@ model:
   mae:
     img_size: 512
     patch_size: 16
-    num_frames: 5
+    num_frames: 3
     tubelet_size: 1
     in_chans: 9
     embed_dim: 128
@@ -135,11 +135,11 @@ model:
     loss: "mse" # options: "mae", "mse", "mape"
     scheduler: "constant" #other options: "cosine", "plateau", "exp"
     scheduler_warmup: 0
-    batch_size: 24
+    batch_size: 2
     learning_rate: 0.0001
     weight_decay: 3e-4 # 0.0
     optimiser: "adam"
-    epochs: 4
+    epochs: 100
     patience: 2
 
 # hydra configuration

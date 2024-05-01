@@ -1,5 +1,6 @@
 wandb
 output
+outputs
 
 # aux directories
 .vscode

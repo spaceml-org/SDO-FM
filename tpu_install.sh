@@ -6,6 +6,7 @@ sudo mount 10.14.32.66:/sdoml_hdd /mnt/sdoml -o ro,hard,timeo=600,retrans=3,rsiz
 # install base dependencies
 sudo apt-get update -y
 sudo apt-get install libomp5 -y
+sudo systemctl restart multipathd.service packagekit.service snapd.service
 # pip3 install mkl mkl-include
 # pip3 install tf-nightly tb-nightly tbp-nightly
 sudo apt-get install libopenblas-dev -y
