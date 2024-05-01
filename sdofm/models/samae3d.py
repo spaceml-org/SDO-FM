@@ -321,7 +321,7 @@ class SolarAwareMaskedAutoencoderViT3D(nn.Module):
         # select uniformly distributed longitude between min and max patches dervived from Sotryhurst coords
         random_lons = torch.floor(
             (self.ARdists_min_lon_patch - self.ARdists_max_lon_patch)
-            * torch.rand((N, L), device=x.device)
+            * torch.rand(N, L, device=x.device)
             + self.ARdists_max_lon_patch
         ).to(dtype=torch.int64)
 
@@ -336,10 +336,8 @@ class SolarAwareMaskedAutoencoderViT3D(nn.Module):
         )
 
         # randomly set half of latitudes as positive or negative for hemiphere then add equator patch location
-        hemispheres = torch.Tensor([-1,1], device=x.device).to(
-            dtype=torch.int64
-        )
-        random_hemisphere = torch.randint(0,2, (N, L), device=x.device) * (2).to(
+        hemispheres = torch.tensor([-1, 1], device=x.device).to(dtype=torch.int64)
+        random_hemisphere = torch.randint(0, 2, (N, L), device=x.device).to(
             dtype=torch.int64
         )
         # random_hemisphere[random_hemisphere == 0] = -1
