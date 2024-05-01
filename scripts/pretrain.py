@@ -141,6 +141,7 @@ class Pretrainer(object):
                 max_epochs=self.cfg.model.opt.epochs,
                 precision=self.cfg.experiment.precision,
                 profiler=self.profiler,
+                logger=self.logger,
                 # strategy="xla_debug",
                 # callbacks=[pl.callbacks.DeviceStatsMonitor()]
             )

@@ -12,7 +12,7 @@
 
 # general
 experiment:
-  name: "default"
+  name: null # general random name in wandb
   project: "sdofm"
   model: "samae"
   task: "pretrain" # options: train, evaluate (not implemented)
@@ -25,6 +25,7 @@ experiment:
     job_type: "pretrain"
     tags: []
     notes: ""
+    output_directory: "wandb_output"
   fold: null
   evaluate: false     # skip training and only evaluate (requires checkpoint to be set)
   checkpoint: null    # this is the wandb run_id of the checkpoint to load
@@ -48,14 +49,14 @@ experiment:
 # dataset configuration
 data:
   min_date: '2010-09-09 00:00:11.08' # NOT IMPLEMENTED # minimum is '2010-09-09 00:00:11.08'
-  max_date: '2011-09-09 00:00:11.08' # NOT IMPLEMENTED # maximum is '2023-05-26 06:36:08.072'
+  max_date: '2010-12-31 00:00:11.08' # NOT IMPLEMENTED # maximum is '2023-05-26 06:36:08.072'
   month_splits: # non selected months will form training set 
     # train: [1,2,3,4,5,6,7,8,9,10]
     val: [11]
     test: [12]
     holdout: []
   num_workers: 8    # set appropriately for your machine
-  output_directory: "output"
+  # output_directory: "wandb_output"
   sdoml:
     base_directory: "/mnt/sdoml"
     sub_directory:

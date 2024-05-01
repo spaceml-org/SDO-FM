@@ -67,20 +67,20 @@ def main(cfg: DictConfig) -> None:
 
     if not cfg.experiment.disable_wandb:
         wandb.login()
-        output_dir = Path(cfg.data.output_directory)
+        output_dir = Path(cfg.experiment.wandb.output_directory)
         output_dir.mkdir(exist_ok=True, parents=True)
-        print(f"Created directory for storing results: {cfg.data.output_directory}")
-        cache_dir = Path(f"{cfg.data.output_directory}/.cache")
+        print(f"Created directory for storing results: {cfg.experiment.wandb.output_directory}")
+        cache_dir = Path(f"{cfg.experiment.wandb.output_directory}/.cache")
         cache_dir.mkdir(exist_ok=True, parents=True)
 
-        os.environ["WANDB_CACHE_DIR"] = f"{cfg.data.output_directory}/.cache"
+        os.environ["WANDB_CACHE_DIR"] = f"{cfg.experiment.wandb.output_directory}/.cache"
         os.environ["WANDB_MODE"] = "offline" if cfg.experiment.disable_wandb else "online"
 
         logger = WandbLogger(
             # WandbLogger params
             name=cfg.experiment.name,
             project=cfg.experiment.project,
-            dir=cfg.data.output_directory,
+            dir=cfg.experiment.wandb.output_directory,
             log_model="all",
             # kwargs for wandb.init
             tags=cfg.experiment.wandb.tags,
