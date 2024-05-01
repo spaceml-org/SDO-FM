@@ -14,7 +14,6 @@ import wandb
 from omegaconf import DictConfig, OmegaConf
 from lightning.pytorch import seed_everything
 from lightning.pytorch.loggers.wandb import WandbLogger
-from lightning.pytorch.profilers import XLAProfiler, Profiler
 import warnings
 
 from sdofm import utils  # import days_hours_mins_secs_str
@@ -36,15 +35,34 @@ def main(cfg: DictConfig) -> None:
 
     # set device using config disable_cuda option and torch.cuda.is_available()
     profiler = None
-    if cfg.experiment.profiler:
-        match cfg.experiment.accelerator:
-            case "cuda":
-                if (not cfg.experiment.disable_cuda) and torch.cuda.is_available():
-                    cfg.experiment.device ="cpu"
-                    warnings.warn("CUDA not available, reverting to CPU!")
-                profiler = Profiler()
-            case "tpu":
-                profiler = XLAProfiler(port=9014)
+    # if cfg.experiment.profiler:
+    #     match cfg.experiment.accelerator:
+    #         case "cuda":
+    #             if (not cfg.experiment.disable_cuda) and torch.cuda.is_available():
+    #                 cfg.experiment.device ="cpu"
+    #                 warnings.warn("CUDA not available, reverting to CPU!")
+    #             profiler = Profiler()
+    #         case "tpu":
+    #             profiler = XLAProfiler(port=9014)
+    match cfg.experiment.profiler:
+        case 'XLAProfiler':
+            from lightning.pytorch.profilers import XLAProfiler
+            profiler = XLAProfiler(port=9014)
+        case 'PyTorchProfiler':
+            from lightning.pytorch.profilers import PyTorchProfiler
+            profiler = PyTorchProfiler(
+                on_trace_ready=torch.profiler.tensorboard_trace_handler('./log/sdofm'),
+                record_shapes=True,
+                profile_memory=True,
+                with_stack=True
+            )
+        case 'Profiler':
+            from lightning.pytorch.profilers import Profiler
+            profiler = Profiler()
+        case None:
+            profiler = None
+        case _:
+            raise NotImplementedError(f'Profiler {cfg.experiment.profiler} is not implemented.')
 
     # set precision of torch tensors
     if cfg.experiment.accelerator == "cuda":

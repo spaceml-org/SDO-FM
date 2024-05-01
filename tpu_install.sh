@@ -21,7 +21,10 @@ unset LD_PRELOAD
 export TPU_LIBRARY_PATH=$HOME/.local/lib/python3.10/site-packages/libtpu/libtpu.so
 python3 -c "import torch; import torch_xla; import torch_xla.core.xla_model as xm; print(xm.xla_device()); dev = xm.xla_device(); t1 = torch.randn(3,3,device=dev); t2 = torch.randn(3,3,device=dev); print(t1 + t2)"
 
-# install SDO-FM dependencies
+# set python path
+echo 'export PATH="$PATH:/usr/local/bin/python:/home/walsh/.local/bin"' >> ~/.bashrc
 export PATH="$PATH:/usr/local/bin/python:/home/walsh/.local/bin"
+
+# install SDO-FM dependencies
 pip install -r ~/SDO-FM/requirements.txt
 pip install -e ~/SDO-FM
