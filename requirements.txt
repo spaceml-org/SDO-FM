@@ -13,3 +13,6 @@ scipy
 astropy
 sunpy
 timm
+matplotlib
+overrides
+deepspeed

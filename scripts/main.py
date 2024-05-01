@@ -5,6 +5,7 @@ Main entry point. Uses Hydra to load config files and override defaults with com
 import os
 import random
 import time
+import warnings
 from pathlib import Path
 
 import hydra
@@ -38,16 +39,19 @@ def main(cfg: DictConfig) -> None:
     )
 
     # set precision of torch tensors
-    if cfg.experiment.device == "cuda":
-        match cfg.experiment.precision:
-            case 64:
-                torch.set_default_tensor_type(torch.DoubleTensor)
-            case 32:
-                torch.set_default_tensor_type(torch.FloatTensor)
-            case _:
-                raise NotImplementedError(
-                    f"Precision {cfg.experiment.precision} not implemented"
-                )
+    # if cfg.experiment.device == "cuda":
+    match cfg.experiment.precision:
+        case 64:
+            torch.set_default_tensor_type(torch.DoubleTensor)
+        case 32:
+            torch.set_default_tensor_type(torch.FloatTensor)
+        case _:
+            warnings.warn(
+                f"Setting precision {cfg.experiment.precision} will pass through to the trainer but not other operations."
+            )
+            # raise NotImplementedError(
+            #     f"Precision {cfg.experiment.precision} not implemented"
+            # )
 
     # run experiment
     print(f"\nRunning with config:")

@@ -137,6 +137,7 @@ class Pretrainer(object):
                 max_epochs=self.cfg.model.opt.epochs,
                 precision=self.cfg.experiment.precision,
                 logger=self.logger,
+                strategy=self.cfg.experiment.strategy,
             )
         else:
             trainer = pl.Trainer(
