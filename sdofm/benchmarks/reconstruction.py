@@ -41,7 +41,7 @@ def get_metrics(real, generated, channels, mask_disk=MASK_DISK):
     ## Slightly hacky way of ignoring masked images
     if real.mean() == generated.mean():
         return None
-    _, _, image_size = real.shape
+    _, _, _, image_size = real.shape
     mask = disk_mask(image_size)
 
     metrics = {}
