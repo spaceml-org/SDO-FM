@@ -1,0 +1,1 @@
+us-docker.pkg.dev/vertex-ai/training/pytorch-tpu.2-0:latest
