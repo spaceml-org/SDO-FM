@@ -16,11 +16,11 @@ from sdofm.pretraining import MAE, NVAE, SAMAE
 class Pretrainer(object):
     def __init__(self, cfg, logger=None, profiler=None):
         self.cfg = cfg
-        self.logger = logger # would be wandb but broken
-        self.profiler = profiler # if profiler is not None else Profiler()
+        self.logger = logger  # would be wandb but broken
+        self.profiler = profiler  # if profiler is not None else Profiler()
         self.data_module = None
         self.model = None
-            
+
         match cfg.experiment.model:
             case "mae":
                 self.data_module = SDOMLDataModule(

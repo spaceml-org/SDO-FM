@@ -763,7 +763,7 @@ class SDOMLDataModule(pl.LightningDataModule):
         return hmi_mask
 
     def setup(self, stage=None):
-        
+
         self.train_ds = SDOMLDataset(
             self.aligndata,
             self.hmi_data,

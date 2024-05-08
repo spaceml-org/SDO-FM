@@ -45,24 +45,29 @@ def main(cfg: DictConfig) -> None:
     #         case "tpu":
     #             profiler = XLAProfiler(port=9014)
     match cfg.experiment.profiler:
-        case 'XLAProfiler':
+        case "XLAProfiler":
             from lightning.pytorch.profilers import XLAProfiler
+
             profiler = XLAProfiler(port=9014)
-        case 'PyTorchProfiler':
+        case "PyTorchProfiler":
             from lightning.pytorch.profilers import PyTorchProfiler
+
             profiler = PyTorchProfiler(
-                on_trace_ready=torch.profiler.tensorboard_trace_handler('./log/sdofm'),
+                on_trace_ready=torch.profiler.tensorboard_trace_handler("./log/sdofm"),
                 record_shapes=True,
                 profile_memory=True,
-                with_stack=True
+                with_stack=True,
             )
-        case 'Profiler':
+        case "Profiler":
             from lightning.pytorch.profilers import Profiler
+
             profiler = Profiler()
         case None:
             profiler = None
         case _:
-            raise NotImplementedError(f'Profiler {cfg.experiment.profiler} is not implemented.')
+            raise NotImplementedError(
+                f"Profiler {cfg.experiment.profiler} is not implemented."
+            )
 
     # set precision of torch tensors
     if cfg.experiment.accelerator == "cuda":
@@ -87,12 +92,18 @@ def main(cfg: DictConfig) -> None:
         wandb.login()
         output_dir = Path(cfg.experiment.wandb.output_directory)
         output_dir.mkdir(exist_ok=True, parents=True)
-        print(f"Created directory for storing results: {cfg.experiment.wandb.output_directory}")
+        print(
+            f"Created directory for storing results: {cfg.experiment.wandb.output_directory}"
+        )
         cache_dir = Path(f"{cfg.experiment.wandb.output_directory}/.cache")
         cache_dir.mkdir(exist_ok=True, parents=True)
 
-        os.environ["WANDB_CACHE_DIR"] = f"{cfg.experiment.wandb.output_directory}/.cache"
-        os.environ["WANDB_MODE"] = "offline" if cfg.experiment.disable_wandb else "online"
+        os.environ["WANDB_CACHE_DIR"] = (
+            f"{cfg.experiment.wandb.output_directory}/.cache"
+        )
+        os.environ["WANDB_MODE"] = (
+            "offline" if cfg.experiment.disable_wandb else "online"
+        )
 
         logger = WandbLogger(
             # WandbLogger params
@@ -110,8 +121,6 @@ def main(cfg: DictConfig) -> None:
         )
     else:
         logger = None
-
-    
 
     match cfg.experiment.task:
         case "pretrain":
