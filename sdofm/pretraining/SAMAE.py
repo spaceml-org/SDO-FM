@@ -107,7 +107,6 @@ class SAMAE(BaseModule):
 
 
     def on_validation_epoch_end(self):
-        # log sampled images
         x = next(iter(self.val_dataloader()))
         x = x.to(self.device)
         loss, x_hat, mask = self.autoencoder(x)
@@ -119,4 +118,3 @@ class SAMAE(BaseModule):
 
         for k, v in batch_metrics.items():
             self.log(f"val_{k}", v, sync_dist=True)
-            
