@@ -8,7 +8,7 @@ import torch.nn.functional as F
 from .. import utils
 from ..BaseModule import BaseModule
 from ..models import PrithviEncoder, SolarAwareMaskedAutoencoderViT3D
-
+from ..benchmarks.reconstruction import get_batch_metrics
 
 class SAMAE(BaseModule):
     def __init__(
@@ -104,3 +104,19 @@ class SAMAE(BaseModule):
 
     def predict_step(self, batch):  # loss, x_hat, mask
         return self(batch)
+
+
+    def on_validation_epoch_end(self):
+        # log sampled images
+        x = next(iter(self.val_dataloader()))
+        x = x.to(self.device)
+        loss, x_hat, mask = self.autoencoder(x)
+        x_hat = self.autoencoder.unpatchify(x_hat)
+        x = self.autoencoder.unpatchify(x)
+        channels = ["131A","1600A","1700A","171A","193A","211A","304A","335A","94A"]    
+
+        batch_metrics = get_batch_metrics(x, x_hat, channels)
+
+        for k, v in batch_metrics.items():
+            self.log(f"val_{k}", v, sync_dist=True)
+            
