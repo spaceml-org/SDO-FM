@@ -15,6 +15,7 @@ from ..models.nvae.utils import (
     kl_coeff,
     reconstruction_loss,
 )
+from ..benchmarks.reconstruction import get_batch_metrics
 
 
 class NVAE(BaseModule):
@@ -203,3 +204,15 @@ class NVAE(BaseModule):
         )
         self.log("val_loss", loss)
         return loss
+    
+    def on_validation_epoch_end(self):
+        x = next(iter(self.val_dataloader()))
+        x = x.to(self.device)
+        _, x_hat, _ = self.autoencoder(x)
+        x_hat = self.autoencoder.unpatchify(x_hat)
+        channels = ["131A","1600A","1700A","171A","193A","211A","304A","335A","94A"]    
+
+        batch_metrics = get_batch_metrics(x, x_hat, channels)
+
+        for k, v in batch_metrics.items():
+            self.log(f"val_{k}", v, sync_dist=True)

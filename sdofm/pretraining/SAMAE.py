@@ -109,9 +109,8 @@ class SAMAE(BaseModule):
     def on_validation_epoch_end(self):
         x = next(iter(self.val_dataloader()))
         x = x.to(self.device)
-        loss, x_hat, mask = self.autoencoder(x)
+        _, x_hat, _ = self.autoencoder(x)
         x_hat = self.autoencoder.unpatchify(x_hat)
-        x = self.autoencoder.unpatchify(x)
         channels = ["131A","1600A","1700A","171A","193A","211A","304A","335A","94A"]    
 
         batch_metrics = get_batch_metrics(x, x_hat, channels)
