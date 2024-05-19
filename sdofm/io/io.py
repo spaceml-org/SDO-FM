@@ -7,6 +7,8 @@ num_warnings = 0
 max_warnings = 100
 
 def load_blosc_file(blosc_cache, event_date, setname, elements):
+    global num_warnings
+    global max_warnings
     datestr = event_date.strftime("%Y-%m-%d_%H:%M:%S")
     elemsstr = "-".join(elements)
     
