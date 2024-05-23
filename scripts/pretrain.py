@@ -4,6 +4,7 @@ import os
 from pathlib import Path
 
 import lightning.pytorch as pl
+from lightning.fabric.strategies import XLAFSDPStrategy
 
 import torch
 import wandb
@@ -135,6 +136,7 @@ class Pretrainer(object):
         print("\nPRE-TRAINING\n")
 
         if self.cfg.experiment.distributed.enabled:
+            # strategy = XLAFSDPStrategy(state_dict_type='full')
             trainer = pl.Trainer(
                 devices=self.cfg.experiment.distributed.world_size,
                 accelerator=self.cfg.experiment.accelerator,
@@ -142,8 +144,10 @@ class Pretrainer(object):
                 precision=self.cfg.experiment.precision,
                 profiler=self.profiler,
                 logger=self.logger,
-                strategy=self.cfg.experiment.strategy,
+                enable_checkpointing=True,
+                # strategy='xla_fsdp'
             )
+            # print('info', trainer.strategy)
         else:
             trainer = pl.Trainer(
                 accelerator=self.cfg.experiment.accelerator,

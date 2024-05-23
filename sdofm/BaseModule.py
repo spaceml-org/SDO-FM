@@ -8,10 +8,11 @@ class BaseModule(pl.LightningModule):
         optimiser: str = "adam",
         lr: float = 1e-3,
         weight_decay: float = 0.0,
+        hyperparam_ignore=[],
         # pass to pl.LightningModule
     ):
         super().__init__()
-        self.save_hyperparameters()
+        self.save_hyperparameters(ignore=hyperparam_ignore)
 
         # optimiser values
         self.optimiser = optimiser

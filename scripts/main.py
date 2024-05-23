@@ -19,6 +19,7 @@ import warnings
 
 from sdofm import utils  # import days_hours_mins_secs_str
 from sdofm.utils import flatten_dict
+import logging
 
 # import torch_xla.debug.profiler as xp
 
@@ -28,6 +29,13 @@ wandb_logger = None
 # loads the config file
 @hydra.main(config_path="../experiments", config_name="default")
 def main(cfg: DictConfig) -> None:
+
+    match cfg.log_level:
+        case "DEBUG":
+            logging.basicConfig(level=logging.DEBUG)
+        case _:
+            logging.basicConfig(level=logging.INFO)
+
     # set seed
     torch.manual_seed(cfg.experiment.seed)
     np.random.seed(cfg.experiment.seed)

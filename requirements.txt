@@ -12,9 +12,7 @@ lightning[extra]
 scipy
 astropy
 sunpy
-timm
 matplotlib
 overrides
-deepspeed
 numpy
 tensorrt
