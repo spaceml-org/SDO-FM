@@ -8,7 +8,7 @@ zarr
 pandas
 segmentation-models-pytorch 
 einops
-lightning[extra]
+# lightning[extra]
 scipy
 astropy
 sunpy

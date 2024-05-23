@@ -10,7 +10,7 @@ sudo mount 10.14.32.66:/sdoml_hdd /mnt/sdoml -o ro,hard,timeo=600,retrans=3,rsiz
 # # pip3 install mkl mkl-include
 # # pip3 install tf-nightly tb-nightly tbp-nightly
 # sudo apt-get install libopenblas-dev -y
-# pip install torch~=2.2.0 torch_xla[tpu]~=2.2.0 -f https://storage.googleapis.com/libtpu-releases/index.html
+sudo pip install torch~=2.3.0 torch_xla[tpu]~=2.3.0 -f https://storage.googleapis.com/libtpu-releases/index.html
 
 # # setup tpu and test
 # export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$HOME/.local/lib/
@@ -19,12 +19,12 @@ sudo mount 10.14.32.66:/sdoml_hdd /mnt/sdoml -o ro,hard,timeo=600,retrans=3,rsiz
 # export USE_TORCH=ON
 # unset LD_PRELOAD
 # export TPU_LIBRARY_PATH=$HOME/.local/lib/python3.10/site-packages/libtpu/libtpu.so
-# python3 -c "import torch; import torch_xla; import torch_xla.core.xla_model as xm; print(xm.xla_device()); dev = xm.xla_device(); t1 = torch.randn(3,3,device=dev); t2 = torch.randn(3,3,device=dev); print(t1 + t2)"
+python3 -c "import torch; import torch_xla; import torch_xla.core.xla_model as xm; print(xm.xla_device()); dev = xm.xla_device(); t1 = torch.randn(3,3,device=dev); t2 = torch.randn(3,3,device=dev); print(t1 + t2)"
 
 # set python path
 echo 'export PATH="$PATH:/usr/local/bin/python:/home/walsh/.local/bin"' >> ~/.bashrc
 export PATH="$PATH:/usr/local/bin/python:/home/walsh/.local/bin"
 
 # install SDO-FM dependencies
-pip install -r ~/SDO-FM/requirements.txt
-pip install -e ~/SDO-FM
+sudo pip install -r ~/SDO-FM/requirements.txt
+sudo pip install -e ~/SDO-FM
