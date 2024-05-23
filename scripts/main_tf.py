@@ -10,12 +10,12 @@ from pathlib import Path
 
 import hydra
 import numpy as np
-import torch
+import tensorflow as tf
 import wandb
+
+# from lightning.pytorch import seed_everything
+# from lightning.pytorch.loggers.wandb import WandbLogger
 from omegaconf import DictConfig, OmegaConf
-from lightning.pytorch import seed_everything
-from lightning.pytorch.loggers.wandb import WandbLogger
-import warnings
 
 from sdofm import utils  # import days_hours_mins_secs_str
 from sdofm.utils import flatten_dict
@@ -29,40 +29,11 @@ wandb_logger = None
 @hydra.main(config_path="../experiments", config_name="default")
 def main(cfg: DictConfig) -> None:
     # set seed
-    torch.manual_seed(cfg.experiment.seed)
-    np.random.seed(cfg.experiment.seed)
-    random.seed(cfg.experiment.seed)
-    seed_everything(cfg.experiment.seed)
+    tf.keras.utils.set_random_seed(cfg.experiment.seed)
 
     # set device using config disable_cuda option and torch.cuda.is_available()
     profiler = None
-    # if cfg.experiment.profiler:
-    #     match cfg.experiment.accelerator:
-    #         case "cuda":
-    #             if (not cfg.experiment.disable_cuda) and torch.cuda.is_available():
-    #                 cfg.experiment.device ="cpu"
-    #                 warnings.warn("CUDA not available, reverting to CPU!")
-    #             profiler = Profiler()
-    #         case "tpu":
-    #             profiler = XLAProfiler(port=9014)
     match cfg.experiment.profiler:
-        case "XLAProfiler":
-            from lightning.pytorch.profilers import XLAProfiler
-
-            profiler = XLAProfiler(port=9014)
-        case "PyTorchProfiler":
-            from lightning.pytorch.profilers import PyTorchProfiler
-
-            profiler = PyTorchProfiler(
-                on_trace_ready=torch.profiler.tensorboard_trace_handler("./log/sdofm"),
-                record_shapes=True,
-                profile_memory=True,
-                with_stack=True,
-            )
-        case "Profiler":
-            from lightning.pytorch.profilers import Profiler
-
-            profiler = Profiler()
         case None:
             profiler = None
         case _:
@@ -73,17 +44,14 @@ def main(cfg: DictConfig) -> None:
     # set precision of torch tensors
     # if cfg.experiment.device == "cuda":
     match cfg.experiment.precision:
-        case 64:
-            torch.set_default_tensor_type(torch.DoubleTensor)
-        case 32:
-            torch.set_default_tensor_type(torch.FloatTensor)
+        case "mixed_float16":
+            tf.keras.mixed_precision.mixed_precision.set_global_policy(
+                cfg.experiment.precision
+            )
         case _:
             warnings.warn(
-                f"Setting precision {cfg.experiment.precision} will pass through to the trainer but not other operations."
+                f"Setting precision {cfg.experiment.precision} is not supported."
             )
-            # raise NotImplementedError(
-            #     f"Precision {cfg.experiment.precision} not implemented"
-            # )
 
     # run experiment
     print(f"\nRunning with config:")
@@ -109,7 +77,7 @@ def main(cfg: DictConfig) -> None:
             "offline" if cfg.experiment.disable_wandb else "online"
         )
 
-        logger = WandbLogger(
+        logger = wandb.init(
             # WandbLogger params
             name=cfg.experiment.name,
             project=cfg.experiment.project,
@@ -121,7 +89,8 @@ def main(cfg: DictConfig) -> None:
             group=cfg.experiment.wandb.group,
             save_code=True,
             job_type=cfg.experiment.wandb.job_type,
-            config=flatten_dict(cfg),
+            config=flatten_dict(cfg, sep="___"),  # may want to + tf.FLAGS
+            sync_tensorboard=True,
         )
     else:
         logger = None

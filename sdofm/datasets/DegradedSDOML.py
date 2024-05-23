@@ -54,11 +54,6 @@ class DegradedSDOMLDataset(SDOMLDataset):
         # This Dataset is only for use on AIA
         self.num_channels = len(self.wavelengths)
 
-        if args.hmi_data is not None or args.eve_data is not None:
-            raise NotImplementedError(
-                "Degraded SDOML dataloader is designed for AIA only."
-            )
-
     def __getitem__(self, idx):
         orig_img = torch.Tensor(super().__getitem__(idx))
 
@@ -111,6 +106,13 @@ class DegradedSDOMLDataModule(SDOMLDataModule):
         self.threshold_black_value = threshold_black_value
         self.min_alpha = min_alpha
         self.max_alpha = max_alpha
+
+        if (
+            kwargs["hmi_path"] is not None or kwargs["eve_path"] is not None
+        ):  # hmi or eve specified
+            raise NotImplementedError(
+                "Degraded SDOML dataloader is designed for AIA only."
+            )
 
     @override
     def setup(self, stage=None):

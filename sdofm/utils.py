@@ -29,6 +29,35 @@ def flatten_dict(d, parent_key="", sep="_"):
     return dict(items)
 
 
+def unflatten_dict(dictionary, sep="_", wandb_mode=True):
+
+    def grab_values(d):
+        resultDict = AttributeDict()
+        for k, v in d.items():
+            if isinstance(v, dict) and "desc" in v.keys() and "value" in v.keys():
+                resultDict[k] = v["value"]
+            elif isinstance(v, dict):
+                resultDict[k] = grab_values(v)
+            else:
+                resultDict[k] = v
+        return resultDict
+
+    resultDict = AttributeDict()
+    for key, value in dictionary.items():
+        # value = value.value if wandb_mode else value
+        parts = key.split(sep)
+        d = resultDict
+        for part in parts[:-1]:
+            if part not in d:
+                d[part] = AttributeDict()
+            d = d[part]
+        d[parts[-1]] = value
+
+    if wandb_mode:
+        resultDict = grab_values(resultDict)
+    return resultDict
+
+
 # CHECKPOINTING (not really needed as lightning does it)
 def load_checkpoint(model, optimizer, scheduler, device, checkpoint_file: str):
     """Loads a model checkpoint.

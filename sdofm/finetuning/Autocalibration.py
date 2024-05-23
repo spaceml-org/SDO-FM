@@ -3,6 +3,7 @@
 import lightning.pytorch as pl
 import torch
 import torch.nn as nn
+from typing import Optional
 
 from ..BaseModule import BaseModule
 from ..models import (
@@ -92,6 +93,7 @@ class Autocalibration(BaseModule):
         freeze_encoder: bool = True,
         # if finetuning
         checkpoint_path: Optional[str] = None,
+        backbone: Optional[object] = None,
         # all else
         *args,
         **kwargs,
@@ -99,43 +101,49 @@ class Autocalibration(BaseModule):
         super().__init__(*args, **kwargs)
 
         # BACKBONE
-        self.mae = SolarAwareMaskedAutoencoderViT3D(
-            img_size,
-            patch_size,
-            num_frames,
-            tubelet_size,
-            in_chans,
-            embed_dim,
-            depth,
-            num_heads,
-            decoder_embed_dim,
-            decoder_depth,
-            decoder_num_heads,
-            mlp_ratio,
-            norm_layer,
-            norm_pix_loss,
-            masking_type,
-            active_region_mu_degs,
-            active_region_std_degs,
-            active_region_scale,
-            active_region_abs_lon_max_degs,
-            active_region_abs_lat_max_degs,
-        )
-        if checkpoint_path is not None:
-            state_dict = torch.load(checkpoint_path, map_location=self.mae.device)
+        if backbone is not None:
 
-            #            if num_frames != 3:
-            #                del state_dict["pos_embed"]
-            #                del state_dict["decoder_pos_embed"]
-            #
-            #            if in_chans != 6:
-            #                del state_dict["patch_embed.proj.weight"]
-            #                del state_dict["decoder_pred.weight"]
-            #                del state_dict["decoder_pred.bias"]
+            # if checkpoint_path is not None:
+            #     # state_dict = torch.load(checkpoint_path, map_location=self.backbone.device)
 
-            self.mae.load_state_dict(state_dict, strict=False)
+            #     # #            if num_frames != 3:
+            #     # #                del state_dict["pos_embed"]
+            #     # #                del state_dict["decoder_pos_embed"]
+            #     # #
+            #     # #            if in_chans != 6:
+            #     # #                del state_dict["patch_embed.proj.weight"]
+            #     # #                del state_dict["decoder_pred.weight"]
+            #     # #                del state_dict["decoder_pred.bias"]
 
-        self.encoder = PrithviEncoder(self.mae)
+            #     # self.mae.load_state_dict(state_dict, strict=False)
+            #     self.backbone = SolarAwareMaskedAutoencoderViT3D.load_from_checkpoint(checkpoint_path)
+            self.backbone = backbone
+        else:
+            self.backbone = SolarAwareMaskedAutoencoderViT3D(
+                img_size,
+                patch_size,
+                num_frames,
+                tubelet_size,
+                in_chans,
+                embed_dim,
+                depth,
+                num_heads,
+                decoder_embed_dim,
+                decoder_depth,
+                decoder_num_heads,
+                mlp_ratio,
+                norm_layer,
+                norm_pix_loss,
+                masking_type,
+                active_region_mu_degs,
+                active_region_std_degs,
+                active_region_scale,
+                active_region_abs_lon_max_degs,
+                active_region_abs_lat_max_degs,
+            )
+            self.backbone = backbone
+
+        self.encoder = PrithviEncoder(self.backbone)
 
         if freeze_encoder:
             self.encoder.eval()

@@ -17,5 +17,4 @@ matplotlib
 overrides
 deepspeed
 numpy
-torch~=2.2.0
 tensorrt
