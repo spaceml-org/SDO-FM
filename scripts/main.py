@@ -44,15 +44,6 @@ def main(cfg: DictConfig) -> None:
 
     # set device using config disable_cuda option and torch.cuda.is_available()
     profiler = None
-    # if cfg.experiment.profiler:
-    #     match cfg.experiment.accelerator:
-    #         case "cuda":
-    #             if (not cfg.experiment.disable_cuda) and torch.cuda.is_available():
-    #                 cfg.experiment.device ="cpu"
-    #                 warnings.warn("CUDA not available, reverting to CPU!")
-    #             profiler = Profiler()
-    #         case "tpu":
-    #             profiler = XLAProfiler(port=9014)
     match cfg.experiment.profiler:
         case "XLAProfiler":
             from lightning.pytorch.profilers import XLAProfiler
@@ -79,7 +70,6 @@ def main(cfg: DictConfig) -> None:
             )
 
     # set precision of torch tensors
-    # if cfg.experiment.device == "cuda":
     match cfg.experiment.precision:
         case 64:
             torch.set_default_tensor_type(torch.DoubleTensor)

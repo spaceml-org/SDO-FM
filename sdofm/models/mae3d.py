@@ -52,9 +52,9 @@ class PatchEmbed(nn.Module):
 
     def forward(self, x):
         B, C, T, H, W = x.shape  # batch channels frames height width
-        print("input dim", x.shape)
+        # print("input dim", x.shape)
         x = self.proj(x)
-        print("proj dim", x.shape)
+        # print("proj dim", x.shape)
         # The output size is (B, L, C), where N=H*W/T/T, C is embid_dim
         if self.flatten:
             x = x.flatten(2).transpose(1, 2)  # B,C,T,H,W -> B,C,L=(T*H*W) -> B,L,C
@@ -79,10 +79,16 @@ class MaskedAutoencoderViT3D(nn.Module):
         decoder_depth=8,
         decoder_num_heads=16,
         mlp_ratio=4.0,
-        norm_layer=nn.LayerNorm,
+        norm_layer='LayerNorm',
         norm_pix_loss=False,
     ):
         super().__init__()
+
+        match norm_layer:
+            case 'LayerNorm':
+                norm_layer = nn.LayerNorm
+            case _:
+                raise NotImplementedError(f"Norm layer [{norm_layer}] not implemented.")
 
         # --------------------------------------------------------------------------
         # MAE encoder specifics
@@ -221,7 +227,7 @@ class MaskedAutoencoderViT3D(nn.Module):
         x: [N, L, D], sequence
         """
         N, L, D = x.shape  # batch, length, dim
-        print("x shape when masking", x.shape)
+        # print("x shape when masking", x.shape)
         len_keep = int(L * (1 - mask_ratio))
 
         noise = torch.rand(N, L, device=x.device)  # noise in [0, 1]
@@ -247,7 +253,7 @@ class MaskedAutoencoderViT3D(nn.Module):
     def forward_encoder(self, x, mask_ratio):
         # embed patches
         x = self.patch_embed(x)
-        print("patch_embed dim", x.shape)
+        # print("patch_embed dim", x.shape)
 
         # add pos embed w/o cls token
         x = x + self.pos_embed[:, 1:, :]

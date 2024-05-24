@@ -1,5 +1,8 @@
 # THESE NEED TO BE VERSION LOCKED (at point of release)
 # $ pip install git+https://github.com/qubvel/segmentation_models.pytorch or PyPi version
+numpy
+lightning[extra]
+timm
 wandb
 omegaconf
 hydra-core
@@ -8,11 +11,9 @@ zarr
 pandas
 segmentation-models-pytorch 
 einops
-# lightning[extra]
 scipy
 astropy
 sunpy
 matplotlib
 overrides
-numpy
 tensorrt

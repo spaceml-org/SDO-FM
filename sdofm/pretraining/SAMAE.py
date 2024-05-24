@@ -8,7 +8,8 @@ import torch.nn.functional as F
 from .. import utils
 from ..BaseModule import BaseModule
 from ..models import PrithviEncoder, SolarAwareMaskedAutoencoderViT3D
-
+from ..benchmarks.reconstruction import get_batch_metrics
+import pandas as pd
 
 class SAMAE(BaseModule):
     def __init__(
@@ -26,7 +27,7 @@ class SAMAE(BaseModule):
         decoder_depth=8,
         decoder_num_heads=16,
         mlp_ratio=4.0,
-        norm_layer=nn.LayerNorm,
+        norm_layer='LayerNorm',
         norm_pix_loss=False,
         # masking
         masking_type="random",  # 'random' or 'solar_aware'

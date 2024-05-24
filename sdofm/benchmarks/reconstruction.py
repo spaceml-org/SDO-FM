@@ -39,8 +39,9 @@ def get_metrics(real, generated, channels, mask_disk=MASK_DISK):
         generated = generated.cpu().detach().numpy()
 
     ## Slightly hacky way of ignoring masked images
-    if real.mean() == generated.mean():
-        return None
+    # if real.mean() == generated.mean():
+    #     return None
+
     _, _, image_size = real.shape
     mask = disk_mask(image_size)
 
@@ -71,14 +72,15 @@ def get_batch_metrics(real_batch, generated_batch, channels):
     ## Expect BxCxHxW
     batch_size = real_batch.shape[0]
     metrics_list = []
-    for sample_idx in range(batch_size):
+    for batch_idx in range(batch_size):
         sample_metrics = get_metrics(
-            real_batch[sample_idx, :, :, :],
-            generated_batch[sample_idx, :, :, :],
+            real_batch[batch_idx, :, :, :],
+            generated_batch[batch_idx, :, :, :],
             channels,
         )
         metrics_list.append(sample_metrics)
 
+    # print("final state is: ", len(metrics_list))
     merged_metrics = merge_metrics(metrics_list)
     return mean_metrics(merged_metrics)
 
@@ -97,6 +99,7 @@ def disk_mask(image_size):
 
 
 def merge_metrics(metrics_list):
+    # print(metrics_list)
     channels = list(metrics_list[0].keys())
     merged_metrics = {}
     for channel in channels:
@@ -123,7 +126,7 @@ def mean_metrics(metrics):
 
 def pixel_percentage_error(real, generated, threshold_ptc):
     difference = real - generated
-    fraction = np.divide(difference, real)
+    fraction = np.divide(difference, real, where=real!=0)
     absolute_fraction = np.abs(fraction)
     ppe_binary = (absolute_fraction < threshold_ptc).astype(int)
     mean_ppe = ppe_binary.mean()
