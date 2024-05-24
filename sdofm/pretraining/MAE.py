@@ -8,7 +8,9 @@ import torch.nn.functional as F
 from .. import utils
 from ..BaseModule import BaseModule
 from ..models import MaskedAutoencoderViT3D, PrithviEncoder
-
+from ..benchmarks.reconstruction import get_batch_metrics
+from lightning.pytorch.utilities.rank_zero import rank_zero_only
+from sdofm.constants import ALL_WAVELENGTHS
 
 class MAE(BaseModule):
     def __init__(
@@ -26,13 +28,14 @@ class MAE(BaseModule):
         decoder_depth=8,
         decoder_num_heads=16,
         mlp_ratio=4.0,
-        norm_layer=nn.LayerNorm,
+        norm_layer='LayerNorm',
         norm_pix_loss=False,
         # pass to BaseModule
         *args,
         **kwargs
     ):
         super().__init__(*args, **kwargs)
+        self.validation_step_outputs = {'x': [], 'x_hat': []}
 
         self.autoencoder = MaskedAutoencoderViT3D(
             img_size,
@@ -58,12 +61,41 @@ class MAE(BaseModule):
         loss, x_hat, mask = self.autoencoder(x)
         x_hat = self.autoencoder.unpatchify(x_hat)
         loss = F.mse_loss(x_hat, x)
-        self.log("train_loss", loss)
+        self.log("train_loss", loss, on_step=True, on_epoch=True, prog_bar=True)
         return loss
 
     def validation_step(self, batch, batch_idx):
         x = batch
+        self.validation_step_outputs['x'].append(x)
         loss, x_hat, mask = self.autoencoder(x)
         x_hat = self.autoencoder.unpatchify(x_hat)
+        self.validation_step_outputs['x_hat'].append(x_hat)
         loss = F.mse_loss(x_hat, x)
         self.log("val_loss", loss)
+
+    def on_validation_epoch_end(self):
+        # retrieve the validation outputs (images and reconstructions)
+        # TODO: reconstruction should apply where num_frames > 1
+        x, x_hat = torch.stack(self.validation_step_outputs['x'])[:,0,:,0,:,:], torch.stack(self.validation_step_outputs['x_hat'])[:,0,:,0,:,:]
+
+        # TODO: these shouldn't be hardcoded
+        channels = ["131A","1600A","1700A","171A","193A","211A","304A","335A","94A"]
+
+        # generate metrics 
+        batch_metrics = get_batch_metrics(x, x_hat, channels)
+       
+        if isinstance(self.logger, pl.loggers.wandb.WandbLogger):
+            from pandas import DataFrame
+            # this only occurs on rank zero only 
+            self.logger.log_table(key='val_reconstruction', dataframe=DataFrame(batch_metrics).reset_index(), step=self.global_step)
+        else:
+            print(batch_metrics)
+            for k in batch_metrics.keys():
+                batch_metrics[k]['channel'] = k
+            for k, v in batch_metrics.items():
+                # sync_dist as this tries to include all
+                self.log_dict(v, sync_dist=True) # This doesn't work?
+        
+        # reset
+        self.validation_step_outputs['x'].clear()
+        self.validation_step_outputs['x_hat'].clear()
