@@ -15,15 +15,15 @@ log_level: 'DEBUG'
 experiment:
   name: null # generate random name in wandb
   project: "sdofm"
-  model: "mae"
-  task: "pretrain" # options: train, evaluate (not implemented)
+  model: "autocalibration"
+  task: "finetune" # options: train, evaluate (not implemented)
   seed: 0
   disable_cuda: false
   disable_wandb: false
   wandb:
     entity: "fdlx"
     group: "sdofm-phase1"
-    job_type: "pretrain"
+    job_type: "finetune"
     tags: []
     notes: ""
     output_directory: "wandb_output"

@@ -75,6 +75,11 @@ class MAE(BaseModule):
         self.validation_metrics.append(bench_recon.get_metrics(x[0,:,0,:,:], x_hat[0,:,0,:,:], ALL_WAVELENGTHS)) # shouldn't be hardcoded to all wavelengths and frames dim is not considered
         self.log("val_loss", loss)
 
+    def forward(self, x):
+        loss, x_hat, mask = self.autoencoder(x)
+        x_hat = self.autoencoder.unpatchify(x_hat)
+        return loss, x_hat, mask
+
     def on_validation_epoch_end(self):
         # retrieve the validation outputs (images and reconstructions)
         # TODO: reconstruction should apply where num_frames > 1

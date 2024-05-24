@@ -75,7 +75,8 @@ class PrithviEncoder(nn.Module):
         if x.ndim == 4:
             x = rearrange(x, "b c h w -> b c () h w")
 
-        x, _, _ = self.encoder.forward_encoder(x, mask_ratio=0.0)
+        # x, _, _ = self.encoder.forward_encoder(x, mask_ratio=0.0)
+        x, _, _ = self.encoder.forward(x)
 
         # Squeeze temporal dim if t=1
         x = x.squeeze(dim=2)
