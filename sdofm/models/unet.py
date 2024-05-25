@@ -6,12 +6,20 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-
+actfn_map = {
+    "relu": nn.ReLU,
+    "sigmoid": nn.Sigmoid
+}
 class DoubleConv(nn.Module):
     """(convolution => [BN] => ReLU) * 2"""
 
-    def __init__(self, in_channels, out_channels, mid_channels=None):
+    def __init__(self, in_channels, out_channels, mid_channels=None, output_act_fn='relu'):
+
+        if not output_act_fn in actfn_map.keys():
+            raise ValueError(f"invalid activation fn {output_act_fn}, only {list(actfn_map.keys())} allowed")
+
         super().__init__()
+        self.output_act_fn = output_act_fn
         if not mid_channels:
             mid_channels = out_channels
         self.double_conv = nn.Sequential(
@@ -20,7 +28,7 @@ class DoubleConv(nn.Module):
             nn.ReLU(inplace=True),
             nn.Conv2d(mid_channels, out_channels, kernel_size=3, padding=1, bias=False),
             nn.BatchNorm2d(out_channels),
-            nn.ReLU(inplace=True)
+            actfn_map[output_act_fn]()
         )
 
     def forward(self, x):
@@ -30,11 +38,11 @@ class DoubleConv(nn.Module):
 class Down(nn.Module):
     """Downscaling with maxpool then double conv"""
 
-    def __init__(self, in_channels, out_channels):
+    def __init__(self, in_channels, out_channels, output_act_fn='relu'):
         super().__init__()
         self.maxpool_conv = nn.Sequential(
             nn.MaxPool2d(2),
-            DoubleConv(in_channels, out_channels)
+            DoubleConv(in_channels, out_channels, output_act_fn=output_act_fn)
         )
 
     def forward(self, x):
@@ -155,5 +163,5 @@ class UNet(nn.Module):
             x = self.forward_to_embeddings(x)
             x = self.forward_from_embeddings(x)
         x = self.forward_decode(x)
-        x = F.sigmoid(self.outc(x))
+        x = F.relu(self.outc(x))
         return x
