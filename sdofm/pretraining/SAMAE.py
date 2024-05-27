@@ -1,15 +1,10 @@
-import time
-
-import lightning.pytorch as pl
 import torch
-import torch.nn as nn
 import torch.nn.functional as F
-
-from .. import utils
 from ..BaseModule import BaseModule
-from ..models import PrithviEncoder, SolarAwareMaskedAutoencoderViT3D
+from ..models import  SolarAwareMaskedAutoencoderViT3D
 from ..benchmarks.reconstruction import get_batch_metrics
-import pandas as pd
+from sdofm.constants import ALL_WAVELENGTHS
+from ..benchmarks import reconstruction as bench_recon
 
 class SAMAE(BaseModule):
     def __init__(
@@ -43,6 +38,8 @@ class SAMAE(BaseModule):
         **kwargs
     ):
         super().__init__(*args, **kwargs)
+
+        self.validation_metrics = []
 
         self.autoencoder = SolarAwareMaskedAutoencoderViT3D(
             img_size,
