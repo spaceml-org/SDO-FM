@@ -19,6 +19,7 @@ class Pretrainer(object):
         self.cfg = cfg
         self.logger = logger  # would be wandb but broken
         self.profiler = profiler  # if profiler is not None else Profiler()
+        print("Profiler", self.profiler)    
         self.data_module = None
         self.model = None
 

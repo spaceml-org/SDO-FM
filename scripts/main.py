@@ -91,6 +91,7 @@ def main(cfg: DictConfig) -> None:
     print(f"Using device: {cfg.experiment.accelerator}")
 
     if not cfg.experiment.disable_wandb:
+        print("Logging to Weights and Biases")
         wandb.login()
         output_dir = Path(cfg.experiment.wandb.output_directory)
         output_dir.mkdir(exist_ok=True, parents=True)
@@ -122,6 +123,7 @@ def main(cfg: DictConfig) -> None:
             config=flatten_dict(cfg),
         )
     else:
+        print("Not using wandb!!!!")
         logger = None
 
     match cfg.experiment.task:
