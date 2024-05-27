@@ -72,7 +72,9 @@ class MAE(BaseModule):
         x_hat = self.autoencoder.unpatchify(x_hat)
         # self.validation_step_outputs['x_hat'].append(x_hat)
         loss = F.mse_loss(x_hat, x)
-        self.validation_metrics.append(bench_recon.get_metrics(x[0,:,0,:,:], x_hat[0,:,0,:,:], ALL_WAVELENGTHS)) # shouldn't be hardcoded to all wavelengths and frames dim is not considered
+        for i in range(x.shape[0]):
+            for frame in range(x.shape[2]):
+                self.validation_metrics.append(bench_recon.get_metrics(x[i,:,frame,:,:], x_hat[i,:,frame,:,:], ALL_WAVELENGTHS))
         self.log("val_loss", loss)
 
     def forward(self, x):
