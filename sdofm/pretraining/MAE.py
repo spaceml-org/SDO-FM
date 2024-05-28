@@ -95,6 +95,7 @@ class MAE(BaseModule):
        
         if isinstance(self.logger, pl.loggers.wandb.WandbLogger):
             from pandas import DataFrame
+            import wandb
             # this only occurs on rank zero only 
             df = DataFrame(batch_metrics)
             df['metric'] = df.index
@@ -104,6 +105,9 @@ class MAE(BaseModule):
             # sync_dist as this tries to include all
                 for i,j in v.items():
                     self.log(f"val_{k}_{i}", j)
+
+            # model_artifact = wandb.Artifact("model", type="model")
+            # model_artifact.add_reference(f"gs://sdofm-checkpoints/{wandb.run.id}-{wandb.run.name}/model-step{wandb.run.step}.ckpt")
         else:
             print(batch_metrics)
             for k in batch_metrics.keys():

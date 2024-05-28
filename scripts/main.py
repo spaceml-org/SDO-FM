@@ -90,7 +90,8 @@ def main(cfg: DictConfig) -> None:
 
     print(f"Using device: {cfg.experiment.accelerator}")
 
-    if not cfg.experiment.disable_wandb:
+    # set up wandb logging
+    if cfg.experiment.wandb.enable:
         wandb.login()
         output_dir = Path(cfg.experiment.wandb.output_directory)
         output_dir.mkdir(exist_ok=True, parents=True)
@@ -104,7 +105,7 @@ def main(cfg: DictConfig) -> None:
             f"{cfg.experiment.wandb.output_directory}/.cache"
         )
         os.environ["WANDB_MODE"] = (
-            "offline" if cfg.experiment.disable_wandb else "online"
+            "offline" if not cfg.experiment.wandb.enable else "online"
         )
 
         logger = WandbLogger(
@@ -112,7 +113,7 @@ def main(cfg: DictConfig) -> None:
             name=cfg.experiment.name,
             project=cfg.experiment.project,
             dir=cfg.experiment.wandb.output_directory,
-            log_model="all",
+            log_model=cfg.experiment.wandb.log_model,
             # kwargs for wandb.init
             tags=cfg.experiment.wandb.tags,
             notes=cfg.experiment.wandb.notes,
@@ -123,6 +124,14 @@ def main(cfg: DictConfig) -> None:
         )
     else:
         logger = None
+
+    # set up checkpointing to gcp bucket 
+    if cfg.experiment.gcp_storage:
+        from google.cloud import storage
+        client = storage.Client() # project='myproject'
+        bucket = client.get_bucket(cfg.experiment.gcp_storage.bucket)
+        if not bucket.exists():
+            raise ValueError("Not authenticated or cannot find provided Google Storage bucket, is your machine authenticated?")
 
     match cfg.experiment.task:
         case "pretrain":
