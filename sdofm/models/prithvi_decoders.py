@@ -47,7 +47,7 @@ class ConvTransformerTokensToEmbeddingNeck(nn.Module):
         self,
         embed_dim: int,
         output_embed_dim: int,
-        # num_frames: int = 1,
+        num_frames: int = 1,
         Hp: int = 14,
         Wp: int = 14,
         drop_cls_token: bool = True,
@@ -82,7 +82,7 @@ class ConvTransformerTokensToEmbeddingNeck(nn.Module):
                 self.W_out, stride, padding, dilation, kernel_size, output_padding
             )
 
-        self.embed_dim = embed_dim
+        self.embed_dim = embed_dim * num_frames
         self.output_embed_dim = output_embed_dim
         self.fpn1 = nn.Sequential(
             nn.ConvTranspose2d(

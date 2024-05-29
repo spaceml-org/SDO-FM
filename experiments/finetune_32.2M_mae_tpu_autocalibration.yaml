@@ -51,7 +51,7 @@ data:
     holdout: []
   num_workers: 8    # set appropriately for your machine
   prefetch_factor: 3
-  # output_directory: "wandb_output"
+  num_frames: 5 # WARNING: This is only read for FINETUNING, model num_frames overrides in BACKBONE
   sdoml:
     base_directory: "/mnt/sdoml"
     sub_directory:

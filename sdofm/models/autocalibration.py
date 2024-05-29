@@ -713,3 +713,57 @@ class Autocalibration13(nn.Module):
         mean = torch.sigmoid(mean)
         log_var = nn.ELU(alpha=10.0)(log_var)
         return torch.stack([mean, log_var], dim=0)
+
+class Autocalibration13Head(nn.Module):
+    """
+    Same as Autocalibration12, but using ELU as activation function for the log_var
+    """
+
+    def __init__(self, input_shape, output_dim):
+        super().__init__()
+        print("Autocalibration initialising")
+
+        # NO LONGER CHANNELS x IMAGES, now embeddings
+        if len(input_shape) != 3:
+            raise ValueError("Expecting an input_shape representing dimensions CxHxW")
+        self._input_channels = input_shape[0]
+        
+        print("input_channels: {}".format(self._input_channels))
+        print(input_shape)
+
+        self._conv2d1 = nn.Conv2d(
+            in_channels=self._input_channels, out_channels=64, kernel_size=3
+        )
+        self._conv2d1_maxpool = nn.MaxPool2d(kernel_size=3)
+
+        self._conv2d2 = nn.Conv2d(in_channels=64, out_channels=128, kernel_size=3)
+        self._conv2d2_maxpool = nn.MaxPool2d(kernel_size=3)
+
+        self._cnn_output_dim = self._cnn(
+            torch.zeros(input_shape).unsqueeze(0)
+        ).nelement()
+        print("cnn_output_dim: {}".format(self._cnn_output_dim))
+
+        self._fc1 = nn.Linear(self._cnn_output_dim, output_dim)
+        self._fc2 = nn.Linear(self._cnn_output_dim, output_dim)
+
+    def _cnn(self, x):
+        x = self._conv2d1(x)
+        x = torch.relu(x)
+        x = self._conv2d1_maxpool(x)
+
+        x = self._conv2d2(x)
+        x = torch.relu(x)
+        x = self._conv2d2_maxpool(x)
+
+        return x
+
+    def forward(self, x):
+        # print("FORWARD SHAPE", x.shape)
+        batch_dim = x.shape[0]
+        x = self._cnn(x).view(batch_dim, -1)
+        mean = self._fc1(x)
+        log_var = self._fc2(x)
+        mean = torch.sigmoid(mean)
+        log_var = nn.ELU(alpha=10.0)(log_var)
+        return torch.stack([mean, log_var], dim=0)

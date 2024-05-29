@@ -127,6 +127,10 @@ class DegradedSDOMLDataModule(SDOMLDataModule):
             self.cadence,
             self.train_months,
             normalizations=self.normalizations,
+            mask=self.hmi_mask.numpy(),
+            num_frames=self.num_frames,
+            min_date=self.min_date,
+            max_date=self.max_date,
             # Degraded
             threshold_black=self.threshold_black,
             noise_image=self.noise_image,
@@ -147,6 +151,10 @@ class DegradedSDOMLDataModule(SDOMLDataModule):
             self.cadence,
             self.val_months,
             normalizations=self.normalizations,
+            mask=self.hmi_mask.numpy(),
+            num_frames=self.num_frames,
+            min_date=self.min_date,
+            max_date=self.max_date,
             # Degraded
             threshold_black=self.threshold_black,
             noise_image=self.noise_image,
@@ -167,6 +175,10 @@ class DegradedSDOMLDataModule(SDOMLDataModule):
             self.cadence,
             self.test_months,
             normalizations=self.normalizations,
+            mask=self.hmi_mask.numpy(),
+            num_frames=self.num_frames,
+            min_date=self.min_date,
+            max_date=self.max_date,
             # Degraded
             threshold_black=self.threshold_black,
             noise_image=self.noise_image,

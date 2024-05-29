@@ -79,6 +79,9 @@ class MAE(BaseModule):
         loss, x_hat, mask = self.autoencoder(x)
         x_hat = self.autoencoder.unpatchify(x_hat)
         return loss, x_hat, mask
+    
+    def forward_encoder(self, x, mask_ratio):
+        return self.autoencoder.forward_encoder(x, mask_ratio=mask_ratio)
 
     def on_validation_epoch_end(self):
         # retrieve the validation outputs (images and reconstructions)
