@@ -75,6 +75,7 @@ class DegradedSDOMLDataset(SDOMLDataset):
 
         SAFETY = 1000
         dim_factor = torch.zeros(self.num_channels)
+        dim_factor = self.max_alpha * torch.rand(self.num_channels)
         while any(dim_factor < self.min_alpha) and SAFETY > 0:
             dim_factor = self.max_alpha * torch.rand(self.num_channels)
             SAFETY -= 1
