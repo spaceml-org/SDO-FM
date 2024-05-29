@@ -26,6 +26,7 @@ echo 'export PATH="$PATH:/usr/local/bin/python:/home/walsh/.local/bin"' >> ~/.ba
 export PATH="$PATH:/usr/local/bin/python:/home/walsh/.local/bin"
 
 # install SDO-FM dependencies
-# sudo pip install -e ~/pytorch-lightning
-sudo pip install -r ~/SDO-FM/requirements.txt
-sudo pip install -e ~/SDO-FM
+echo "Run from repo base dir"
+sudo pip install -r requirements.txt
+sudo pip install -r requirements-dev.txt
+sudo pip install -e .

@@ -17,3 +17,4 @@ sunpy
 matplotlib
 overrides
 tensorrt
+google-cloud-storage

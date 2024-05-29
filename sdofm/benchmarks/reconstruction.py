@@ -126,7 +126,7 @@ def mean_metrics(metrics):
 
 def pixel_percentage_error(real, generated, threshold_ptc):
     difference = real - generated
-    fraction = np.divide(difference, real, where=real!=0)
+    fraction = np.divide(difference, real, where=real != 0)
     absolute_fraction = np.abs(fraction)
     ppe_binary = (absolute_fraction < threshold_ptc).astype(int)
     mean_ppe = ppe_binary.mean()

@@ -15,16 +15,23 @@ from sdofm.pretraining import MAE, NVAE, SAMAE
 
 
 class Pretrainer(object):
-    def __init__(self, cfg, logger=None, profiler=None):
+    def __init__(self, cfg, logger=None, profiler=None, is_backbone=False):
         self.cfg = cfg
         self.logger = logger  # would be wandb but broken
         self.profiler = profiler  # if profiler is not None else Profiler()
         print("Profiler", self.profiler)    
         self.data_module = None
         self.model = None
+        self.model_class = None
 
-        match cfg.experiment.model:
+        model_name = (
+            cfg.experiment.model if not is_backbone else cfg.experiment.backbone.model
+        )
+
+        match model_name:
             case "mae":
+                self.model_class = MAE
+
                 self.data_module = SDOMLDataModule(
                     # hmi_path=os.path.join(
                     #     self.cfg.data.sdoml.base_directory, self.cfg.data.sdoml.sub_directory.hmi
@@ -54,13 +61,21 @@ class Pretrainer(object):
                 )
                 self.data_module.setup()
 
-                self.model = MAE(
-                    **cfg.model.mae,
-                    optimiser=cfg.model.opt.optimiser,
-                    lr=cfg.model.opt.learning_rate,
-                    weight_decay=cfg.model.opt.weight_decay,
-                )
+                if cfg.experiment.resuming or is_backbone:
+                    self.model = self.load_checkpoint(
+                        cfg.experiment.checkpoint
+                        if not is_backbone
+                        else cfg.experiment.backbone.checkpoint
+                    )
+                else:
+                    self.model = self.model_class(
+                        **cfg.model.mae,
+                        optimiser=cfg.model.opt.optimiser,
+                        lr=cfg.model.opt.learning_rate,
+                        weight_decay=cfg.model.opt.weight_decay,
+                    )
             case "samae":
+                self.model_class = SAMAE
                 self.data_module = SDOMLDataModule(
                     hmi_path=None,
                     aia_path=os.path.join(
@@ -85,15 +100,25 @@ class Pretrainer(object):
                     num_frames=cfg.model.mae.num_frames,
                 )
                 self.data_module.setup()
-                self.model = SAMAE(
-                    **cfg.model.mae,
-                    **cfg.model.samae,
-                    optimiser=cfg.model.opt.optimiser,
-                    lr=cfg.model.opt.learning_rate,
-                    weight_decay=cfg.model.opt.weight_decay,
-                )
+
+                if cfg.experiment.resuming or is_backbone:
+                    self.model = self.load_checkpoint(
+                        cfg.experiment.checkpoint
+                        if not is_backbone
+                        else cfg.experiment.backbone.checkpoint
+                    )
+                else:
+                    self.model = self.model_class(
+                        **cfg.model.mae,
+                        **cfg.model.samae,
+                        optimiser=cfg.model.opt.optimiser,
+                        lr=cfg.model.opt.learning_rate,
+                        weight_decay=cfg.model.opt.weight_decay,
+                    )
 
             case "nvae":
+                self.model_class = NVAE
+
                 self.data_module = SDOMLDataModule(
                     hmi_path=os.path.join(
                         self.cfg.data.sdoml.base_directory,
@@ -121,23 +146,52 @@ class Pretrainer(object):
                     max_date=cfg.data.max_date,
                 )
 
-                self.model = NVAE(
-                    **cfg.model.nvae,
-                    optimiser=cfg.model.opt.optimiser,
-                    lr=cfg.model.opt.learning_rate,
-                    weight_decay=cfg.model.opt.weight_decay,
-                    hmi_mask=self.data_module.hmi_mask,
-                )
+                if cfg.experiment.resuming or is_backbone:
+                    self.model = self.load_checkpoint(
+                        cfg.experiment.checkpoint
+                        if not is_backbone
+                        else cfg.experiment.backbone.checkpoint
+                    )
+                else:
+                    self.model = self.model_class(
+                        **cfg.model.nvae,
+                        optimiser=cfg.model.opt.optimiser,
+                        lr=cfg.model.opt.learning_rate,
+                        weight_decay=cfg.model.opt.weight_decay,
+                        hmi_mask=self.data_module.hmi_mask,
+                    )
             case _:
                 raise NotImplementedError(
                     f"Model {cfg.experiment.model} not implemented"
                 )
 
+    def load_checkpoint(self, checkpoint_reference):
+        print("Loading checkpoint...")
+        if isinstance(self.logger, pl.loggers.wandb.WandbLogger):
+
+            # download checkpoint
+            try:
+                artifact = self.logger.use_artifact(
+                    checkpoint_reference
+                )  # , type="model")
+                artifact_dir = Path(artifact.download()) / "model.ckpt"
+            except (wandb.errors.CommError, AttributeError) as e:
+                print("W&B checkpoint not found, trying as direct path...")
+                artifact_dir = checkpoint_reference
+
+            # load checkpoint
+            self.model = self.model_class.load_from_checkpoint(artifact_dir)
+            print("Checkpoint loaded from", artifact_dir)
+            return self.model
+        else:
+            raise NotImplementedError(
+                "Loading checkpoints without W&B run reference or ckpt path is not supported."
+            )
+
     def run(self):
         print("\nPRE-TRAINING\n")
 
         if self.cfg.experiment.distributed.enabled:
-            # strategy = XLAFSDPStrategy(state_dict_type='full')
             trainer = pl.Trainer(
                 devices=self.cfg.experiment.distributed.world_size,
                 accelerator=self.cfg.experiment.accelerator,
@@ -146,9 +200,7 @@ class Pretrainer(object):
                 profiler=self.profiler,
                 logger=self.logger,
                 enable_checkpointing=True,
-                # strategy='xla_fsdp'
             )
-            # print('info', trainer.strategy)
         else:
             trainer = pl.Trainer(
                 accelerator=self.cfg.experiment.accelerator,
@@ -161,5 +213,5 @@ class Pretrainer(object):
     def evaluate(self):
         self.trainer.evaluate()
 
-    def test_sdofm(self):
+    def test(self):
         self.trainer.test(ckpt_path="best")

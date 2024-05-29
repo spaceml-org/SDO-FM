@@ -10,7 +10,7 @@ import wandb
 from sdofm import utils
 from sdofm.datasets import DegradedSDOMLDataModule
 from sdofm.finetuning import Autocalibration
-from sdofm.pretraining import MAE
+from .pretrain import Pretrainer
 
 
 class Finetuner(object):
@@ -21,9 +21,14 @@ class Finetuner(object):
         self.trainer = None
         self.data_module = None
         self.model = None
+        self.model_class = None
+
+        backbone = Pretrainer(cfg, logger=logger, is_backbone=True)
 
         match cfg.experiment.model:
             case "autocalibration":
+                self.model_class = Autocalibration
+
                 self.data_module = DegradedSDOMLDataModule(
                     hmi_path=None,
                     aia_path=os.path.join(
@@ -40,35 +45,57 @@ class Finetuner(object):
                     test_months=cfg.data.month_splits.test,
                     holdout_months=cfg.data.month_splits.holdout,
                     cache_dir=os.path.join(
-                        cfg.data.sdoml.base_directory, cfg.data.sdoml.sub_directory.cache
+                        cfg.data.sdoml.base_directory,
+                        cfg.data.sdoml.sub_directory.cache,
                     ),
                     min_date=cfg.data.min_date,
                     max_date=cfg.data.max_date,
-                    num_frames=1,
+                    num_frames=cfg.data.num_frames,
                 )
                 self.data_module.setup()
 
-                backbone = MAE.load_from_checkpoint(
-                    **cfg.model.mae,
-                    optimiser=cfg.model.opt.optimiser,
-                    lr=cfg.model.opt.learning_rate,
-                    weight_decay=cfg.model.opt.weight_decay,
-                    checkpoint_path="/home/walsh/SDO-FM/outputs/2024-05-24/18-35-29/sdofm/chvgwzkk/checkpoints/epoch=3-step=176.ckpt"
-                )
-
-                self.model = Autocalibration(
-                    **self.cfg.model.mae,
-                    **self.cfg.model.degragation,
-                    optimiser=self.cfg.model.opt.optimiser,
-                    lr=self.cfg.model.opt.learning_rate,
-                    weight_decay=self.cfg.model.opt.weight_decay,
-                    backbone=backbone,
-                    hyperparam_ignore=['backbone']
-                )
+                if cfg.experiment.resuming:
+                    self.model = self.load_checkpoint(cfg.experiment.checkpoint)
+                else:
+                    self.model = self.model_class(
+                        # **self.cfg.model.mae,
+                        img_size=512,
+                        patch_size=16,
+                        embed_dim=128,
+                        **self.cfg.model.autocalibration,
+                        optimiser=self.cfg.model.opt.optimiser,
+                        lr=self.cfg.model.opt.learning_rate,
+                        weight_decay=self.cfg.model.opt.weight_decay,
+                        backbone=backbone.model,
+                        hyperparam_ignore=["backbone"],
+                    )
             case _:
                 raise NotImplementedError(
                     f"Model {cfg.experiment.model} not implemented"
                 )
+
+    def load_checkpoint(self, checkpoint_reference):
+        print("Loading checkpoint...")
+        if isinstance(self.logger, pl.loggers.wandb.WandbLogger):
+
+            # download checkpoint
+            try:
+                artifact = self.logger.use_artifact(
+                    checkpoint_reference
+                )  # , type="model")
+                artifact_dir = Path(artifact.download()) / "model.ckpt"
+            except wandb.errors.CommError:
+                print("W&B checkpoint not found, trying as direct path...")
+                artifact_dir = checkpoint_reference
+
+            # load checkpoint
+            self.model = self.model_class.load_from_checkpoint(artifact_dir)
+            print("Checkpoint loaded from", artifact_dir)
+            return self.model
+        else:
+            raise NotImplementedError(
+                "Loading checkpoints without W&B run reference or ckpt path is not supported."
+            )
 
     def run(self):
         print("\nFINE TUNING\n")
@@ -82,6 +109,7 @@ class Finetuner(object):
                 profiler=self.profiler,
                 logger=self.logger,
                 enable_checkpointing=True,
+                strategy="ddp",
             )
         else:
             trainer = pl.Trainer(

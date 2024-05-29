@@ -17,66 +17,24 @@ from segmentation_models_pytorch.decoders.unet.decoder import UnetDecoder
 from .. import utils
 from . import ConvTransformerTokensToEmbeddingNeck, MaskedAutoencoderViT3D
 
-BANDS = ["B02", "B03", "B04", "B05", "B06", "B07"]
-MEAN = [
-    "775.2290211032589",
-    "1080.992780391705",
-    "1228.5855250417867",
-    "2497.2022620507532",
-    "2204.2139147975554",
-    "1610.8324823273745",
-]
-STD = [
-    "1281.526139861424",
-    "1270.0297974547493",
-    "1399.4802505642526",
-    "1368.3446143747644",
-    "1291.6764008585435",
-    "1154.505683480695",
-]
-
 
 class PrithviEncoder(nn.Module):
     def __init__(
         self,
-        mae,
+        encoder,
     ):
         super().__init__()
-        # cfg.model.mae.num_frames = num_frames
-        # cfg.model.mae.in_chans = in_chans
-        # cfg.model_args.img_size = img_size
-
-        # self.embed_dim = embed_dim
-        # self.depth = cfg.model_args.depth
-        # self.num_frames = num_frames
-        # self.in_chans = in_chans
-        # self.img_size = img_size
-        # self.patch_size = cfg.model_args.patch_size
-        # encoder = MaskedAutoencoderViT3D(
-        #     img_size,
-        #     patch_size,
-        #     num_frames,
-        #     tubelet_size,
-        #     in_chans,
-        #     embed_dim,
-        #     depth,
-        #     num_heads,
-        #     decoder_embed_dim,
-        #     decoder_depth,
-        #     decoder_num_heads,
-        #     mlp_ratio,
-        #     norm_layer,
-        #     norm_pix_loss,
-        # )
-        self.encoder = mae
+        self.encoder = encoder
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         # add a temporal dimension if num_frames = 1
         if x.ndim == 4:
             x = rearrange(x, "b c h w -> b c () h w")
 
+        # print('input shape', x.shape)
         # x, _, _ = self.encoder.forward_encoder(x, mask_ratio=0.0)
-        x, _, _ = self.encoder.forward(x)
+        x, _, _ = self.encoder.forward_encoder(x, mask_ratio=0.0)
+        # print('output shape', x.shape)
 
         # Squeeze temporal dim if t=1
         x = x.squeeze(dim=2)

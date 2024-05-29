@@ -22,7 +22,7 @@ class SAMAE(BaseModule):
         decoder_depth=8,
         decoder_num_heads=16,
         mlp_ratio=4.0,
-        norm_layer='LayerNorm',
+        norm_layer="LayerNorm",
         norm_pix_loss=False,
         # masking
         masking_type="random",  # 'random' or 'solar_aware'
@@ -35,7 +35,7 @@ class SAMAE(BaseModule):
         checkpoint_path=None,
         # pass to BaseModule
         *args,
-        **kwargs
+        **kwargs,
     ):
         super().__init__(*args, **kwargs)
 
@@ -92,6 +92,11 @@ class SAMAE(BaseModule):
         x = batch
         loss, x_hat, mask = self.autoencoder(x)
         x_hat = self.autoencoder.unpatchify(x_hat)
+        self.validation_metrics.append(
+            bench_recon.get_metrics(
+                x[0, :, 0, :, :], x_hat[0, :, 0, :, :], ALL_WAVELENGTHS
+            )
+        )  # shouldn't be hardcoded to all wavelengths and frames dim is not considered
         loss = F.mse_loss(x_hat, x)
         for i in range(x.shape[0]):
             for frame in range(x.shape[2]):
@@ -108,6 +113,7 @@ class SAMAE(BaseModule):
 
     def on_validation_epoch_end(self):
         # retrieve the validation outputs (images and reconstructions)
+
         merged_metrics = bench_recon.merge_metrics(self.validation_metrics)
         batch_metrics = bench_recon.mean_metrics(merged_metrics)
        
@@ -129,4 +135,5 @@ class SAMAE(BaseModule):
                 # sync_dist as this tries to include all
                 self.log_dict(v, sync_dist=True) # This doesn't work?
         
+
         self.validation_metrics.clear()
