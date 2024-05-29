@@ -22,7 +22,7 @@ experiment:
     tags: []
     notes: ""
     output_directory: "wandb_output"
-    log_model: True             # can be True (final checkpoint), False (no checkpointing), or "all" (for all epoches)
+    log_model: "all"             # can be True (final checkpoint), False (no checkpointing), or "all" (for all epoches)
   gcp_storage:                  # this will checkpoint all epoches and upload them to a GCP bucket, W&B will store references (TODO: perhaps explain this better)
     enabled: true
     bucket: "sdofm-checkpoints"
@@ -36,7 +36,7 @@ experiment:
   profiler: null                # options are 'XLAProfiler' (TPU), 'PyTorchProfiler', warning: PyTorchProfiler only works on cpu/gpu according to docs
   distributed:
     enabled: true               # set to true to use more than one device
-    world_size: 2          # The "auto" option recognizes the machine you are on, and selects the appropriate number of accelerators.
+    world_size: "auto"          # The "auto" option recognizes the machine you are on, and selects the appropriate number of accelerators.
 
 # dataset configuration
 data:
@@ -47,7 +47,7 @@ data:
     val: [11]
     test: [12]
     holdout: []
-  num_workers: 8               # set appropriately for your machine
+  num_workers: 16               # set appropriately for your machine
   prefetch_factor: 3           # TODO: not implemented, 2 is default
   num_frames: 1                # WARNING: This is only read for FINETUNING, model num_frames overrides in BACKBONE
   drop_frame_dim: True         # Requires num_frames=1, for backwards compatibility
@@ -130,7 +130,7 @@ model:
     loss: "mse" # options: "mae", "mse", "mape"
     scheduler: "constant" #other options: "cosine", "plateau", "exp"
     scheduler_warmup: 0
-    batch_size: 8
+    batch_size: 24
     learning_rate: 0.0001
     weight_decay: 3e-4 # 0.0
     optimiser: "adam"

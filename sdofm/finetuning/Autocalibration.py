@@ -127,7 +127,7 @@ class Autocalibration(BaseModule):
         x = self.decoder(x)
         # print("Autocal training: decoder out dim", x.shape)
         y_hat = self.head(x)
-        loss = self.loss_function(y_hat, degrad_factor)
+        loss = self.loss_function(y_hat[0, :, :], degrad_factor)
         self.log("train_loss", loss)
         return loss
 
@@ -136,5 +136,5 @@ class Autocalibration(BaseModule):
         x = self.encoder(degraded_img)
         # x_hat = self.autoencoder.unpatchify(x_hat)
         y_hat = self.head(self.decoder(x))
-        loss = self.loss_function(y_hat, degrad_factor)
+        loss = self.loss_function(y_hat[0, :, :], degrad_factor)
         self.log("val_loss", loss)

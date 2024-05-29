@@ -160,7 +160,7 @@ class Ablation(object):
             )
 
     def run(self):
-        print("\nFINE TUNING\n")
+        print("\nRUNNING MODEL FOR ABLATION STUDY...\n")
 
         if self.cfg.experiment.distributed:
             trainer = pl.Trainer(
@@ -173,6 +173,7 @@ class Ablation(object):
                 enable_checkpointing=True,
                 callbacks = self.callbacks,
                 strategy="ddp",
+                log_every_n_steps=30,
             )
         else:
             trainer = pl.Trainer(
