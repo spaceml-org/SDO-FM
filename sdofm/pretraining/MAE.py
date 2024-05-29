@@ -67,7 +67,11 @@ class MAE(BaseModule):
         loss = F.mse_loss(x_hat, x)
         for i in range(x.shape[0]):
             for frame in range(x.shape[2]):
-                self.validation_metrics.append(bench_recon.get_metrics(x[i,:,frame,:,:], x_hat[i,:,frame,:,:], ALL_WAVELENGTHS))
+                self.validation_metrics.append(
+                    bench_recon.get_metrics(
+                        x[i, :, frame, :, :], x_hat[i, :, frame, :, :], ALL_WAVELENGTHS
+                    )
+                )
 
         self.log("val_loss", loss)
 

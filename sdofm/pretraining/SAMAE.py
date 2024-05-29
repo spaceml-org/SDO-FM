@@ -2,9 +2,10 @@ import torch
 import torch.nn.functional as F
 import lightning.pytorch as pl
 from ..BaseModule import BaseModule
-from ..models import  SolarAwareMaskedAutoencoderViT3D
+from ..models import SolarAwareMaskedAutoencoderViT3D
 from sdofm.constants import ALL_WAVELENGTHS
 from ..benchmarks import reconstruction as bench_recon
+
 
 class SAMAE(BaseModule):
     def __init__(
@@ -100,8 +101,12 @@ class SAMAE(BaseModule):
         loss = F.mse_loss(x_hat, x)
         for i in range(x.shape[0]):
             for frame in range(x.shape[2]):
-                self.validation_metrics.append(bench_recon.get_metrics(x[i,:,frame,:,:], x_hat[i,:,frame,:,:], ALL_WAVELENGTHS))
-        self.log("val_loss", loss) 
+                self.validation_metrics.append(
+                    bench_recon.get_metrics(
+                        x[i, :, frame, :, :], x_hat[i, :, frame, :, :], ALL_WAVELENGTHS
+                    )
+                )
+        self.log("val_loss", loss)
 
     def forward(self, x):
         loss, x_hat, mask = self.autoencoder(x)
@@ -116,24 +121,28 @@ class SAMAE(BaseModule):
 
         merged_metrics = bench_recon.merge_metrics(self.validation_metrics)
         batch_metrics = bench_recon.mean_metrics(merged_metrics)
-       
+
         if isinstance(self.logger, pl.loggers.wandb.WandbLogger):
             from pandas import DataFrame
-            # this only occurs on rank zero only 
+
+            # this only occurs on rank zero only
             df = DataFrame(batch_metrics)
-            df['metric'] = df.index
+            df["metric"] = df.index
             cols = df.columns.tolist()
-            self.logger.log_table(key='val_reconstruction', dataframe=df[cols[-1:] + cols[:-1]], step=self.validation_step)
+            self.logger.log_table(
+                key="val_reconstruction",
+                dataframe=df[cols[-1:] + cols[:-1]],
+                step=self.validation_step,
+            )
             for k, v in batch_metrics.items():
-            # sync_dist as this tries to include all
-                for i,j in v.items():
+                # sync_dist as this tries to include all
+                for i, j in v.items():
                     self.log(f"val_{k}_{i}", j)
         else:
             for k in batch_metrics.keys():
-                batch_metrics[k]['channel'] = k
+                batch_metrics[k]["channel"] = k
             for k, v in batch_metrics.items():
                 # sync_dist as this tries to include all
-                self.log_dict(v, sync_dist=True) # This doesn't work?
-        
+                self.log_dict(v, sync_dist=True)  # This doesn't work?
 
         self.validation_metrics.clear()
