@@ -1,15 +1,9 @@
-import time
-
 import lightning.pytorch as pl
-import torch
-import torch.nn as nn
 import torch.nn.functional as F
 
-from .. import utils
 from ..BaseModule import BaseModule
-from ..models import MaskedAutoencoderViT3D, PrithviEncoder
+from ..models import MaskedAutoencoderViT3D
 from ..benchmarks import reconstruction as bench_recon
-from lightning.pytorch.utilities.rank_zero import rank_zero_only
 from sdofm.constants import ALL_WAVELENGTHS
 
 class MAE(BaseModule):
