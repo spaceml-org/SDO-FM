@@ -147,6 +147,11 @@ def main(cfg: DictConfig) -> None:
 
             finetuner = Finetuner(cfg, logger=logger, profiler=profiler)
             finetuner.run()
+        case "ablation":
+            from scripts.ablation import Ablation
+
+            ablation = Ablation(cfg, logger=logger, profiler=profiler)
+            ablation.run()
         case _:
             raise NotImplementedError(
                 f"Experiment {cfg.experiment.task} not implemented"

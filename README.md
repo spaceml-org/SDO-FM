@@ -19,10 +19,13 @@ SDO-FM is envisioned as a ‘multi-modal’ foundation model, integrating instru
 ├── notebooks           # visualisation/testing ipynb
 ├── scripts             # entrypoint and highest level executors
 ├── sdofm               # python package
+│   ├── ablation        # models without backbone integration
+│   ├── benchmarks      # metrics for comparison
 │   ├── datasets        # dataloaders/modules
 │   ├── finetuning      # modules for finetuning
 │   ├── models          # model components 
-└── └── pretraining     # modules for pretraining
+│   ├── pretraining     # modules for pretraining
+└── └── visualisation   # various graphing utilities
 ```
 
 ## Datasets
@@ -43,6 +46,7 @@ SDO-FM is envisioned as a ‘multi-modal’ foundation model, integrating instru
 | Name 	| Paper	|
 |---	|---	|
 | Multichannel autocalibration for the Atmospheric Imaging Assembly using machine learning 	| Dos Santos, Luiz FG, et al. "Multichannel autocalibration for the Atmospheric Imaging Assembly using machine learning." Astronomy & Astrophysics 648 (2021): A53 ([link](https://www.aanda.org/articles/aa/full_html/2021/04/aa40051-20/aa40051-20.html)) 	|
+| Virtual EVE: a Deep Learning Model for Solar Irradiance Prediction | Indaco, Manuel, et al. "Virtual EVE: a Deep Learning Model for Solar Irradiance Prediction." (2023) ([link](https://ml4physicalsciences.github.io/2023/files/NeurIPS_ML4PS_2023_236.pdf)) 	|
 
 ## Setup
 ### Installation

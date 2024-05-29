@@ -8,8 +8,8 @@ import torch
 import wandb
 
 from sdofm import utils
-from sdofm.datasets import DegradedSDOMLDataModule
-from sdofm.finetuning import Autocalibration
+from sdofm.datasets import SDOMLDataModule, DegradedSDOMLDataModule
+from sdofm.finetuning import Autocalibration, HybridIrradianceModel
 from .pretrain import Pretrainer
 
 
@@ -35,6 +35,53 @@ class Finetuner(object):
                         cfg.data.sdoml.base_directory, cfg.data.sdoml.sub_directory.aia
                     ),
                     eve_path=None,
+                    components=cfg.data.sdoml.components,
+                    wavelengths=cfg.data.sdoml.wavelengths,
+                    ions=cfg.data.sdoml.ions,
+                    frequency=cfg.data.sdoml.frequency,
+                    batch_size=cfg.model.opt.batch_size,
+                    num_workers=cfg.data.num_workers,
+                    val_months=cfg.data.month_splits.val,
+                    test_months=cfg.data.month_splits.test,
+                    holdout_months=cfg.data.month_splits.holdout,
+                    cache_dir=os.path.join(
+                        cfg.data.sdoml.base_directory,
+                        cfg.data.sdoml.sub_directory.cache,
+                    ),
+                    min_date=cfg.data.min_date,
+                    max_date=cfg.data.max_date,
+                    num_frames=cfg.data.num_frames,
+                )
+                self.data_module.setup()
+
+                if cfg.experiment.resuming:
+                    self.model = self.load_checkpoint(cfg.experiment.checkpoint)
+                else:
+                    self.model = self.model_class(
+                        # **self.cfg.model.mae,
+                        img_size=512,
+                        patch_size=16,
+                        embed_dim=128,
+                        **self.cfg.model.autocalibration,
+                        optimiser=self.cfg.model.opt.optimiser,
+                        lr=self.cfg.model.opt.learning_rate,
+                        weight_decay=self.cfg.model.opt.weight_decay,
+                        backbone=backbone.model,
+                        hyperparam_ignore=["backbone"],
+                    )
+            case "virtualeve":
+                self.model_class = HybridIrradianceModel
+
+                self.data_module = SDOMLDataModule(
+                    hmi_path=(os.path.join(
+                        cfg.data.sdoml.base_directory, cfg.data.sdoml.sub_directory.hmi
+                    ) if cfg.data.sdoml.sub_directory.hmi else None),
+                    aia_path=(os.path.join(
+                        cfg.data.sdoml.base_directory, cfg.data.sdoml.sub_directory.aia
+                    ) if cfg.data.sdoml.sub_directory.aia else None),
+                    eve_path=os.path.join(
+                        cfg.data.sdoml.base_directory, cfg.data.sdoml.sub_directory.eve
+                    )
                     components=cfg.data.sdoml.components,
                     wavelengths=cfg.data.sdoml.wavelengths,
                     ions=cfg.data.sdoml.ions,
