@@ -1,0 +1,125 @@
+# pretrain_tiny.yaml
+
+# MODEL SUMMARY
+#   | Name        | Type                   | Params
+# -------------------------------------------------------
+# 0 | mae         | MaskedAutoencoderViT3D | 3.8 M 
+# 1 | autoencoder | PrithviEncoder         | 3.8 M 
+# -------------------------------------------------------
+# 3.0 M     Trainable params
+# 786 K     Non-trainable params
+# 3.8 M     Total params
+# 15.102    Total estimated model params size (MB)
+
+# MODEL CONFIGURATION
+## General
+experiment:
+  name: "pretrain_tiny"
+  project: "sdofm"
+  model: "mae"
+  task: "train" # options: train, evaluate (not implemented)
+  seed: 0
+  disable_cuda: false
+  disable_wandb: false
+  wandb:
+    entity: "fdlx"
+    group: "sdofm-phase1"
+    job_type: "pretrain"
+    tags: []
+    notes: ""
+  fold: null
+  evaluate: false     # skip training and only evaluate (requires checkpoint to be set)
+  checkpoint: null    # this is the wandb run_id of the checkpoint to load
+  device: null        # this is set automatically using the disable_cuda flag and torch.cuda.is_available()
+  precision: 64       # 32, 64
+  log_n_batches: 1000 # log every n training batches
+  save_results: true  # save full results to file and wandb
+  accelerator: "auto"  # options are "auto", "gpu", "tpu", "ipu", or "cpu"
+  distributed:
+    enabled: true
+    # backend: "ddp"
+    # nproc_per_node: 1
+    # nnodes: 1
+    world_size: 1 # The "auto" option recognizes the machine you are on, and selects the appropriate Accelerator.
+    # node_rank: 0
+    # local_rank: 0
+    # master_addr: "localhost"
+    # master_port: 12345
+
+## Dataset configuration
+data:
+  min_date: "0000-00-00 00:00:00" # NOT IMPLEMENTED # minimum is '2010-09-09 00:00:11.08'
+  max_date: "0000-00-00 00:00:00" # NOT IMPLEMENTED # maximum is '2023-05-26 06:36:08.072'
+  month_splits: # non selected months will form training set 
+    # train: [1,2,3,4,5,6,7,8,9,10]
+    val: [11]
+    test: [12]
+    holdout: []
+  num_workers: 16    # set appropriately for your machine
+  output_directory: "output"
+  sdoml:
+    base_directory: "/mnt/sdoml"
+    sub_directory:
+      hmi: "HMI.zarr"
+      aia: "AIA.zarr"
+      eve: EVE_legacy.zarr"
+      cache: "cache"
+    components: null # null for select all magnetic components ["Bx", "By", "Bz"]
+    wavelengths: null # null for select all wavelengths channels ["131A","1600A","1700A","171A","193A","211A","304A","335A","94A"]
+    ions: null # null to select all ion channels ["C III", "Fe IX", "Fe VIII", "Fe X", "Fe XI", "Fe XII", "Fe XIII", "Fe XIV", "Fe XIX", "Fe XV", "Fe XVI", "Fe XVIII", "Fe XVI_2", "Fe XX", "Fe XX_2", "Fe XX_3", "H I", "H I_2", "H I_3", "He I", "He II", "He II_2", "He I_2", "Mg IX", "Mg X", "Mg X_2", "Ne VII", "Ne VIII", "O II", "O III", "O III_2", "O II_2", "O IV", "O IV_2", "O V", "O VI", "S XIV", "Si XII", "Si XII_2"]
+    frequency: '12min' # smallest is 12min
+
+## Model configurations
+model:
+  # PRETRAINERS
+  mae:
+    img_size: 512
+    patch_size: 16
+    num_frames: 1
+    tubelet_size: 1
+    in_chans: 9
+    embed_dim: 128
+    depth: 8
+    num_heads: 16
+    decoder_embed_dim: 128
+    decoder_depth: 4
+    decoder_num_heads: 16
+    mlp_ratio: 4.0
+    # norm_layer: defaults to nn.LayerNorm
+    norm_pix_loss: False
+  samae:
+    # uses all parameters as in mae plus these
+    masking_type: "solar_aware"  # 'random' or 'solar_aware'
+    active_region_mu_degs: 15.73
+    active_region_std_degs: 6.14
+    active_region_scale: 1.0
+    active_region_abs_lon_max_degs: 60
+    active_region_abs_lat_max_degs: 60
+  # FINE-TUNERS
+  dimming:
+    num_neck_filters: 32
+    output_dim: 1 # not sure why this is implemented for autocorrelation, should be a scalar
+    loss: "mse" # options: "mse", "heteroscedastic"
+    freeze_encoder: true
+    
+
+  # ML optimization arguments:
+  opt:
+    loss: "mse" # options: "mae", "mse", "mape"
+    scheduler: "constant" #other options: "cosine", "plateau", "exp"
+    scheduler_warmup: 0
+    batch_size: 1
+    learning_rate: 0.0001
+    weight_decay: 0.0
+    optimiser: "adam"
+    epochs: 4
+    patience: 2
+
+## Hydra configuration
+hydra:
+  mode: MULTIRUN
+  run:
+    dir: ${data.output_directory}/${now:%Y-%m-%d-%H-%M-%S}
+  sweep:
+    dir: ${hydra.run.dir}
+    subdir: ${hydra.job.num}
