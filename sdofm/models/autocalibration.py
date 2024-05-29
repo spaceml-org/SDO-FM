@@ -714,6 +714,7 @@ class Autocalibration13(nn.Module):
         log_var = nn.ELU(alpha=10.0)(log_var)
         return torch.stack([mean, log_var], dim=0)
 
+
 class Autocalibration13Head(nn.Module):
     """
     Same as Autocalibration12, but using ELU as activation function for the log_var
@@ -727,7 +728,7 @@ class Autocalibration13Head(nn.Module):
         if len(input_shape) != 3:
             raise ValueError("Expecting an input_shape representing dimensions CxHxW")
         self._input_channels = input_shape[0]
-        
+
         print("input_channels: {}".format(self._input_channels))
         print(input_shape)
 

@@ -79,13 +79,13 @@ class MaskedAutoencoderViT3D(nn.Module):
         decoder_depth=8,
         decoder_num_heads=16,
         mlp_ratio=4.0,
-        norm_layer='LayerNorm',
+        norm_layer="LayerNorm",
         norm_pix_loss=False,
     ):
         super().__init__()
 
         match norm_layer:
-            case 'LayerNorm':
+            case "LayerNorm":
                 norm_layer = nn.LayerNorm
             case _:
                 raise NotImplementedError(f"Norm layer [{norm_layer}] not implemented.")

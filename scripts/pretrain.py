@@ -23,8 +23,10 @@ class Pretrainer(object):
         self.model = None
         self.model_class = None
 
-        model_name = cfg.experiment.model if not is_backbone else cfg.experiment.backbone.model
-        
+        model_name = (
+            cfg.experiment.model if not is_backbone else cfg.experiment.backbone.model
+        )
+
         match model_name:
             case "mae":
                 self.model_class = MAE
@@ -59,7 +61,11 @@ class Pretrainer(object):
                 self.data_module.setup()
 
                 if cfg.experiment.resuming or is_backbone:
-                    self.model = self.load_checkpoint(cfg.experiment.checkpoint if not is_backbone else cfg.experiment.backbone.checkpoint)
+                    self.model = self.load_checkpoint(
+                        cfg.experiment.checkpoint
+                        if not is_backbone
+                        else cfg.experiment.backbone.checkpoint
+                    )
                 else:
                     self.model = self.model_class(
                         **cfg.model.mae,
@@ -95,7 +101,11 @@ class Pretrainer(object):
                 self.data_module.setup()
 
                 if cfg.experiment.resuming or is_backbone:
-                    self.model = self.load_checkpoint(cfg.experiment.checkpoint if not is_backbone else cfg.experiment.backbone.checkpoint)
+                    self.model = self.load_checkpoint(
+                        cfg.experiment.checkpoint
+                        if not is_backbone
+                        else cfg.experiment.backbone.checkpoint
+                    )
                 else:
                     self.model = self.model_class(
                         **cfg.model.mae,
@@ -136,7 +146,11 @@ class Pretrainer(object):
                 )
 
                 if cfg.experiment.resuming or is_backbone:
-                    self.model = self.load_checkpoint(cfg.experiment.checkpoint if not is_backbone else cfg.experiment.backbone.checkpoint)
+                    self.model = self.load_checkpoint(
+                        cfg.experiment.checkpoint
+                        if not is_backbone
+                        else cfg.experiment.backbone.checkpoint
+                    )
                 else:
                     self.model = self.model_class(
                         **cfg.model.nvae,
@@ -156,8 +170,10 @@ class Pretrainer(object):
 
             # download checkpoint
             try:
-                artifact = self.logger.use_artifact(checkpoint_reference)#, type="model")
-                artifact_dir = Path(artifact.download())  / "model.ckpt"
+                artifact = self.logger.use_artifact(
+                    checkpoint_reference
+                )  # , type="model")
+                artifact_dir = Path(artifact.download()) / "model.ckpt"
             except (wandb.errors.CommError, AttributeError) as e:
                 print("W&B checkpoint not found, trying as direct path...")
                 artifact_dir = checkpoint_reference
@@ -167,8 +183,9 @@ class Pretrainer(object):
             print("Checkpoint loaded from", artifact_dir)
             return self.model
         else:
-            raise NotImplementedError("Loading checkpoints without W&B run reference or ckpt path is not supported.")
-
+            raise NotImplementedError(
+                "Loading checkpoints without W&B run reference or ckpt path is not supported."
+            )
 
     def run(self):
         print("\nPRE-TRAINING\n")

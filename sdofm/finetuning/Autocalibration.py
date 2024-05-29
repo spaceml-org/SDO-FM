@@ -109,7 +109,6 @@ class Autocalibration(BaseModule):
         self.head = Autocalibration13Head(
             [num_neck_filters, img_size, img_size], output_dim
         )
-        
 
         # set loss function
         match loss:

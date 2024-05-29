@@ -125,13 +125,16 @@ def main(cfg: DictConfig) -> None:
     else:
         logger = None
 
-    # set up checkpointing to gcp bucket 
+    # set up checkpointing to gcp bucket
     if cfg.experiment.gcp_storage:
         from google.cloud import storage
-        client = storage.Client() # project='myproject'
+
+        client = storage.Client()  # project='myproject'
         bucket = client.get_bucket(cfg.experiment.gcp_storage.bucket)
         if not bucket.exists():
-            raise ValueError("Not authenticated or cannot find provided Google Storage bucket, is your machine authenticated?")
+            raise ValueError(
+                "Not authenticated or cannot find provided Google Storage bucket, is your machine authenticated?"
+            )
 
     match cfg.experiment.task:
         case "pretrain":

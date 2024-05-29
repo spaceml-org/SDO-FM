@@ -12,6 +12,7 @@ from ..benchmarks.reconstruction import get_batch_metrics
 from ..benchmarks import reconstruction as bench_recon
 from sdofm.constants import ALL_WAVELENGTHS
 
+
 class SAMAE(BaseModule):
     def __init__(
         self,
@@ -28,7 +29,7 @@ class SAMAE(BaseModule):
         decoder_depth=8,
         decoder_num_heads=16,
         mlp_ratio=4.0,
-        norm_layer='LayerNorm',
+        norm_layer="LayerNorm",
         norm_pix_loss=False,
         # masking
         masking_type="random",  # 'random' or 'solar_aware'
@@ -41,7 +42,7 @@ class SAMAE(BaseModule):
         checkpoint_path=None,
         # pass to BaseModule
         *args,
-        **kwargs
+        **kwargs,
     ):
         super().__init__(*args, **kwargs)
 
@@ -96,7 +97,11 @@ class SAMAE(BaseModule):
         x = batch
         loss, x_hat, mask = self.autoencoder(x)
         x_hat = self.autoencoder.unpatchify(x_hat)
-        self.validation_metrics.append(bench_recon.get_metrics(x[0,:,0,:,:], x_hat[0,:,0,:,:], ALL_WAVELENGTHS)) # shouldn't be hardcoded to all wavelengths and frames dim is not considered
+        self.validation_metrics.append(
+            bench_recon.get_metrics(
+                x[0, :, 0, :, :], x_hat[0, :, 0, :, :], ALL_WAVELENGTHS
+            )
+        )  # shouldn't be hardcoded to all wavelengths and frames dim is not considered
         loss = F.mse_loss(x_hat, x)
         self.log("val_loss", loss, sync_dist=True)
 
@@ -116,22 +121,27 @@ class SAMAE(BaseModule):
         # TODO: these shouldn't be hardcoded
         # channels = ["131A","1600A","1700A","171A","193A","211A","304A","335A","94A"]
 
-        # generate metrics 
+        # generate metrics
         # batch_metrics = get_batch_metrics(x, x_hat, channels)
         merged_metrics = bench_recon.merge_metrics(self.validation_metrics)
         batch_metrics = bench_recon.mean_metrics(merged_metrics)
-       
+
         if isinstance(self.logger, pl.loggers.wandb.WandbLogger):
             from pandas import DataFrame
             import wandb
-            # this only occurs on rank zero only 
+
+            # this only occurs on rank zero only
             df = DataFrame(batch_metrics)
-            df['metric'] = df.index
+            df["metric"] = df.index
             cols = df.columns.tolist()
-            self.logger.log_table(key='val_reconstruction', dataframe=df[cols[-1:] + cols[:-1]], step=self.validation_step)
+            self.logger.log_table(
+                key="val_reconstruction",
+                dataframe=df[cols[-1:] + cols[:-1]],
+                step=self.validation_step,
+            )
             for k, v in batch_metrics.items():
-            # sync_dist as this tries to include all
-                for i,j in v.items():
+                # sync_dist as this tries to include all
+                for i, j in v.items():
                     self.log(f"val_{k}_{i}", j)
 
             # table = wandb.Table(columns=["ID", "Image"])
@@ -140,11 +150,11 @@ class SAMAE(BaseModule):
         else:
             print(batch_metrics)
             for k in batch_metrics.keys():
-                batch_metrics[k]['channel'] = k
+                batch_metrics[k]["channel"] = k
             for k, v in batch_metrics.items():
                 # sync_dist as this tries to include all
-                self.log_dict(v, sync_dist=True) # This doesn't work?
-        
+                self.log_dict(v, sync_dist=True)  # This doesn't work?
+
         # reset
         # self.validation_step_outputs['x'].clear()
         # self.validation_step_outputs['x_hat'].clear()

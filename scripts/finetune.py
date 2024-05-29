@@ -45,7 +45,8 @@ class Finetuner(object):
                     test_months=cfg.data.month_splits.test,
                     holdout_months=cfg.data.month_splits.holdout,
                     cache_dir=os.path.join(
-                        cfg.data.sdoml.base_directory, cfg.data.sdoml.sub_directory.cache
+                        cfg.data.sdoml.base_directory,
+                        cfg.data.sdoml.sub_directory.cache,
                     ),
                     min_date=cfg.data.min_date,
                     max_date=cfg.data.max_date,
@@ -66,22 +67,23 @@ class Finetuner(object):
                         lr=self.cfg.model.opt.learning_rate,
                         weight_decay=self.cfg.model.opt.weight_decay,
                         backbone=backbone.model,
-                        hyperparam_ignore=['backbone']
+                        hyperparam_ignore=["backbone"],
                     )
             case _:
                 raise NotImplementedError(
                     f"Model {cfg.experiment.model} not implemented"
                 )
 
-                    
     def load_checkpoint(self, checkpoint_reference):
         print("Loading checkpoint...")
         if isinstance(self.logger, pl.loggers.wandb.WandbLogger):
 
             # download checkpoint
             try:
-                artifact = self.logger.use_artifact(checkpoint_reference)#, type="model")
-                artifact_dir = Path(artifact.download())  / "model.ckpt"
+                artifact = self.logger.use_artifact(
+                    checkpoint_reference
+                )  # , type="model")
+                artifact_dir = Path(artifact.download()) / "model.ckpt"
             except wandb.errors.CommError:
                 print("W&B checkpoint not found, trying as direct path...")
                 artifact_dir = checkpoint_reference
@@ -91,7 +93,9 @@ class Finetuner(object):
             print("Checkpoint loaded from", artifact_dir)
             return self.model
         else:
-            raise NotImplementedError("Loading checkpoints without W&B run reference or ckpt path is not supported.")
+            raise NotImplementedError(
+                "Loading checkpoints without W&B run reference or ckpt path is not supported."
+            )
 
     def run(self):
         print("\nFINE TUNING\n")
@@ -105,7 +109,7 @@ class Finetuner(object):
                 profiler=self.profiler,
                 logger=self.logger,
                 enable_checkpointing=True,
-                strategy='ddp',
+                strategy="ddp",
             )
         else:
             trainer = pl.Trainer(
