@@ -34,6 +34,7 @@ class SDOMLDataset(Dataset):
         normalizations=None,
         mask=None,
         num_frames=1,
+        drop_frame_dim=False,
         min_date=None,
         max_date=None,
     ):
@@ -64,22 +65,23 @@ class SDOMLDataset(Dataset):
         self.components = components
         self.wavelengths = wavelengths
         self.ions = ions
-        if self.components is None:
-            self.components = ALL_COMPONENTS
-        if self.wavelengths is None:
-            self.wavelengths = ALL_WAVELENGTHS
-        if self.ions is None:
-            self.ions = ALL_IONS
 
         # Loading data
         # HMI
         if self.hmi_data is not None:
+            if self.components is None:
+                self.components = ALL_COMPONENTS
             self.components.sort()
         # AIA
         if self.aia_data is not None:
+            if self.wavelengths is None:
+                self.wavelengths = ALL_WAVELENGTHS
             self.wavelengths.sort()
         # EVE
-        self.ions.sort()
+        if self.eve_data is not None:
+            if self.ions is None:
+                self.ions = ALL_IONS
+            self.ions.sort()
         self.cadence = freq
         self.months = months
 
@@ -103,6 +105,9 @@ class SDOMLDataset(Dataset):
 
         # number of frames to return per sample
         self.num_frames = num_frames
+        self.drop_frame_dim = drop_frame_dim # for backwards compat 
+        if self.drop_frame_dim:
+            assert self.num_frames == 1
 
     def __len__(self):
         # report slightly smaller such that all frame sets requested are available
@@ -170,7 +175,7 @@ class SDOMLDataset(Dataset):
 
         aia_image = np.array(list(aia_image_dict.values()))
 
-        return aia_image
+        return aia_image[:,0,:,:] if self.drop_frame_dim else aia_image
 
     def get_eve(self, idx):
         """Get EVE data for a given index.
@@ -219,7 +224,7 @@ class SDOMLDataset(Dataset):
 
         hmi_image = np.array(list(hmi_image_dict.values()))
 
-        return hmi_image
+        return hmi_image[:,0,:,:] if self.drop_frame_dim else hmi_image
 
     def __str__(self):
         output = ""
@@ -261,6 +266,7 @@ class SDOMLDataModule(pl.LightningDataModule):
         cache_dir="",
         apply_mask=True,
         num_frames=1,
+        drop_frame_dim=False,
         min_date=None,
         max_date=None,
     ):
@@ -279,6 +285,7 @@ class SDOMLDataModule(pl.LightningDataModule):
         self.holdout_months = holdout_months
         self.cache_dir = cache_dir
         self.num_frames = num_frames
+        self.drop_frame_dim = drop_frame_dim
         self.min_date = pd.to_datetime(min_date) if min_date is not None else None
         self.max_date = pd.to_datetime(max_date) if max_date is not None else None
         self.isAIA = True if self.aia_path is not None else False
@@ -289,30 +296,30 @@ class SDOMLDataModule(pl.LightningDataModule):
         self.components = components
         self.wavelengths = wavelengths
         self.ions = ions
-        if self.components is None:
-            self.components = ALL_COMPONENTS
-        if self.wavelengths is None:
-            self.wavelengths = ALL_WAVELENGTHS
-        if self.ions is None:
-            self.ions = ALL_IONS
-
-        # checking if EVE is in the dataset
-        if self.isEVE:
-            self.eve_data = zarr.group(zarr.DirectoryStore(self.eve_path))
-        else:
-            self.eve_data = None
 
         # checking if AIA is in the dataset
         if self.isAIA:
             self.aia_data = zarr.group(zarr.DirectoryStore(self.aia_path))
+            if self.wavelengths is None:
+                self.wavelengths = ALL_WAVELENGTHS
         else:
             self.aia_data = None
 
-        # checking if AIA is in the dataset
+        # checking if HMI is in the dataset
         if self.isHMI:
             self.hmi_data = zarr.group(zarr.DirectoryStore(self.hmi_path))
+            if self.components is None:
+                self.components = ALL_COMPONENTS
         else:
             self.hmi_data = None
+
+        # checking if EVE is in the dataset
+        if self.isEVE:
+            self.eve_data = zarr.group(zarr.DirectoryStore(self.eve_path))
+            if self.ions is None:
+                self.ions = ALL_IONS
+        else:
+            self.eve_data = None
 
         self.train_months = [
             i
@@ -328,20 +335,7 @@ class SDOMLDataModule(pl.LightningDataModule):
             ]
 
         # Cache filenames
-        ids = []
-        if self.isEVE:
-            if len(self.ions) == 39:
-                ions_id = "EVE_FULL"
-            else:
-                ions_id = "_".join(ions).replace(" ", "_")
-            ids.append(ions_id)
-
-        if self.isAIA:
-            if len(self.wavelengths) == 9:
-                wavelength_id = "AIA_FULL"
-            elif len(self.wavelengths) > 0 and len(self.wavelengths) < 9:
-                wavelength_id = "_".join(self.wavelengths)
-            ids.append(wavelength_id)
+        ids = []      
 
         if self.isHMI:
             if len(self.components) == 3:
@@ -349,6 +343,20 @@ class SDOMLDataModule(pl.LightningDataModule):
             elif len(self.components) > 0 and len(self.components) < 3:
                 component_id = "_".join(self.components)
             ids.append(component_id)
+
+        if self.isAIA:
+            if len(self.wavelengths) == 9:
+                wavelength_id = "AIA_FULL"
+            elif len(self.wavelengths) > 0 and len(self.wavelengths) < 9:
+                wavelength_id = "_".join(self.wavelengths)
+            ids.append(wavelength_id)
+        
+        if self.isEVE:
+            if len(self.ions) == 39:
+                ions_id = "EVE_FULL"
+            else:
+                ions_id = "_".join(ions).replace(" ", "_")
+            ids.append(ions_id)
 
         self.cache_id = f"{'_'.join(ids)}_{self.cadence}"
 
@@ -388,6 +396,7 @@ class SDOMLDataModule(pl.LightningDataModule):
             aligndata["Time"] = pd.to_datetime(aligndata["Time"])
             aligndata.set_index("Time", inplace=True)
             return aligndata
+        print(f"No alignment cache found at {self.index_cache_filename}")
         print(f"\nData alignment calculation begin:")
         print("-" * 50)
 
@@ -777,6 +786,7 @@ class SDOMLDataModule(pl.LightningDataModule):
             normalizations=self.normalizations,
             mask=self.hmi_mask.numpy(),
             num_frames=self.num_frames,
+            drop_frame_dim=self.drop_frame_dim,
             min_date=self.min_date,
             max_date=self.max_date,
         )
@@ -794,6 +804,7 @@ class SDOMLDataModule(pl.LightningDataModule):
             normalizations=self.normalizations,
             mask=self.hmi_mask.numpy(),
             num_frames=self.num_frames,
+            drop_frame_dim=self.drop_frame_dim,
             min_date=self.min_date,
             max_date=self.max_date,
         )
@@ -811,6 +822,7 @@ class SDOMLDataModule(pl.LightningDataModule):
             normalizations=self.normalizations,
             mask=self.hmi_mask.numpy(),
             num_frames=self.num_frames,
+            drop_frame_dim=self.drop_frame_dim,
             min_date=self.min_date,
             max_date=self.max_date,
         )

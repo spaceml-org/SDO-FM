@@ -129,6 +129,7 @@ class DegradedSDOMLDataModule(SDOMLDataModule):
             normalizations=self.normalizations,
             mask=self.hmi_mask.numpy(),
             num_frames=self.num_frames,
+            drop_frame_dim=self.drop_frame_dim,
             min_date=self.min_date,
             max_date=self.max_date,
             # Degraded
@@ -153,6 +154,7 @@ class DegradedSDOMLDataModule(SDOMLDataModule):
             normalizations=self.normalizations,
             mask=self.hmi_mask.numpy(),
             num_frames=self.num_frames,
+            drop_frame_dim=self.drop_frame_dim,
             min_date=self.min_date,
             max_date=self.max_date,
             # Degraded
@@ -177,6 +179,7 @@ class DegradedSDOMLDataModule(SDOMLDataModule):
             normalizations=self.normalizations,
             mask=self.hmi_mask.numpy(),
             num_frames=self.num_frames,
+            drop_frame_dim=self.drop_frame_dim,
             min_date=self.min_date,
             max_date=self.max_date,
             # Degraded
