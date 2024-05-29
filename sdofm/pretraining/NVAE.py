@@ -16,6 +16,9 @@ from ..models.nvae.utils import (
     reconstruction_loss,
 )
 
+from ..benchmarks import reconstruction as bench_recon
+from sdofm.constants import ALL_WAVELENGTHS
+
 
 class NVAE(BaseModule):
     def __init__(
@@ -202,4 +205,5 @@ class NVAE(BaseModule):
             batch, self.trainer.num_val_batches[0] * self.trainer.max_epochs
         )
         self.log("val_loss", loss)
+
         return loss

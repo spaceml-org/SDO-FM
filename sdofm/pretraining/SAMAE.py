@@ -1,16 +1,10 @@
-import time
-
-import lightning.pytorch as pl
 import torch
-import torch.nn as nn
 import torch.nn.functional as F
-
-from .. import utils
+import lightning.pytorch as pl
 from ..BaseModule import BaseModule
-from ..models import PrithviEncoder, SolarAwareMaskedAutoencoderViT3D
-from ..benchmarks.reconstruction import get_batch_metrics
-from ..benchmarks import reconstruction as bench_recon
+from ..models import SolarAwareMaskedAutoencoderViT3D
 from sdofm.constants import ALL_WAVELENGTHS
+from ..benchmarks import reconstruction as bench_recon
 
 
 class SAMAE(BaseModule):
@@ -45,6 +39,8 @@ class SAMAE(BaseModule):
         **kwargs,
     ):
         super().__init__(*args, **kwargs)
+
+        self.validation_metrics = []
 
         self.autoencoder = SolarAwareMaskedAutoencoderViT3D(
             img_size,
@@ -103,7 +99,14 @@ class SAMAE(BaseModule):
             )
         )  # shouldn't be hardcoded to all wavelengths and frames dim is not considered
         loss = F.mse_loss(x_hat, x)
-        self.log("val_loss", loss, sync_dist=True)
+        for i in range(x.shape[0]):
+            for frame in range(x.shape[2]):
+                self.validation_metrics.append(
+                    bench_recon.get_metrics(
+                        x[i, :, frame, :, :], x_hat[i, :, frame, :, :], ALL_WAVELENGTHS
+                    )
+                )
+        self.log("val_loss", loss)
 
     def forward(self, x):
         loss, x_hat, mask = self.autoencoder(x)
@@ -115,20 +118,12 @@ class SAMAE(BaseModule):
 
     def on_validation_epoch_end(self):
         # retrieve the validation outputs (images and reconstructions)
-        # TODO: reconstruction should apply where num_frames > 1
-        # x, x_hat = torch.stack(self.validation_step_outputs['x'])[:,0,:,0,:,:], torch.stack(self.validation_step_outputs['x_hat'])[:,0,:,0,:,:]
 
-        # TODO: these shouldn't be hardcoded
-        # channels = ["131A","1600A","1700A","171A","193A","211A","304A","335A","94A"]
-
-        # generate metrics
-        # batch_metrics = get_batch_metrics(x, x_hat, channels)
         merged_metrics = bench_recon.merge_metrics(self.validation_metrics)
         batch_metrics = bench_recon.mean_metrics(merged_metrics)
 
         if isinstance(self.logger, pl.loggers.wandb.WandbLogger):
             from pandas import DataFrame
-            import wandb
 
             # this only occurs on rank zero only
             df = DataFrame(batch_metrics)
@@ -143,19 +138,11 @@ class SAMAE(BaseModule):
                 # sync_dist as this tries to include all
                 for i, j in v.items():
                     self.log(f"val_{k}_{i}", j)
-
-            # table = wandb.Table(columns=["ID", "Image"])
-            # model_artifact = wandb.Artifact("model", type="model")
-            # model_artifact.add_reference(f"gs://sdofm-checkpoints/{wandb.run.id}-{wandb.run.name}/model-step{wandb.run.step}.ckpt")
         else:
-            print(batch_metrics)
             for k in batch_metrics.keys():
                 batch_metrics[k]["channel"] = k
             for k, v in batch_metrics.items():
                 # sync_dist as this tries to include all
                 self.log_dict(v, sync_dist=True)  # This doesn't work?
 
-        # reset
-        # self.validation_step_outputs['x'].clear()
-        # self.validation_step_outputs['x_hat'].clear()
         self.validation_metrics.clear()
