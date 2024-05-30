@@ -408,7 +408,6 @@ class SDOMLDataModule(pl.LightningDataModule):
                 wavelength_id = "_".join(self.wavelengths)
             ids.append(wavelength_id)
 
-
         if self.isEVE:
             if len(self.ions) == 39:
                 ions_id = "EVE_FULL"
