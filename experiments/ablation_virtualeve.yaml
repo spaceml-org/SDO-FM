@@ -36,7 +36,8 @@ experiment:
   profiler: null                # options are 'XLAProfiler' (TPU), 'PyTorchProfiler', warning: PyTorchProfiler only works on cpu/gpu according to docs
   distributed:
     enabled: true               # set to true to use more than one device
-    world_size: 2               # The "auto" option recognizes the machine you are on, and selects the appropriate number of accelerators.
+    world_size: 1               # The "auto" option recognizes the machine you are on, and selects the appropriate number of accelerators.
+    strategy: "auto"
 
 # dataset configuration
 data:
@@ -47,7 +48,7 @@ data:
     val: [11]
     test: [12]
     holdout: []
-  num_workers: 4                 # set appropriately for your machine
+  num_workers: 16                 # set appropriately for your machine
   prefetch_factor: 3             # [Not implemented] 2 is default
   num_frames: 1                  # WARNING: This is only read for FINETUNING, model num_frames overrides in BACKBONE
   drop_frame_dim: True           # Requires num_frames=1, for backwards compatibility
@@ -136,7 +137,7 @@ model:
     loss: "mse" # options: "mae", "mse", "mape"
     scheduler: "constant" #other options: "cosine", "plateau", "exp"
     scheduler_warmup: 0
-    batch_size: 1
+    batch_size: 32
     learning_rate: 0.0001
     weight_decay: 3e-4 # 0.0
     optimiser: "adam"

@@ -14,7 +14,7 @@ def unnormalize(y, eve_norm):
     eve_norm = torch.tensor(eve_norm).float()
     norm_mean = eve_norm[0]
     norm_stdev = eve_norm[1]
-    y = y * norm_stdev[None].to(y) + norm_mean[None].to(y)
+    y = y * norm_stdev[None] + norm_mean[None] # .to(y) .to(y)
     return y
 
 

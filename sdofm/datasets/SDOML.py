@@ -124,7 +124,7 @@ class SDOMLDataset(Dataset):
 
         if self.eve_data is not None:
             eve_data = self.get_eve(idx)
-            return image_stack, eve_data
+            return image_stack, eve_data.reshape(-1)
         else:
             return image_stack
 
