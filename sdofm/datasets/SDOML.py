@@ -16,6 +16,7 @@ from dask.diagnostics import ProgressBar
 from torch.utils.data import Dataset
 from tqdm import tqdm
 
+from typing import Optional
 from ..constants import ALL_COMPONENTS, ALL_IONS, ALL_WAVELENGTHS
 
 
@@ -34,9 +35,10 @@ class SDOMLDataset(Dataset):
         normalizations=None,
         mask=None,
         num_frames=1,
-        drop_frame_dim=False,
+        drop_frame_dim = False,
         min_date=None,
         max_date=None,
+        get_header = False, #Optional[list] = [],
     ):
         """
         aligndata --> aligned indexes for input-output matching
@@ -60,6 +62,7 @@ class SDOMLDataset(Dataset):
         self.hmi_data = hmi_data
 
         self.mask = mask
+        self.get_header = get_header
 
         # Select alls
         self.components = components
@@ -116,17 +119,27 @@ class SDOMLDataset(Dataset):
     def __getitem__(self, idx):
 
         image_stack = None
+        header_stack = None
         if self.aia_data is not None:
-            image_stack = self.get_aia_image(idx)
+            image_stack, header_stack = self.get_aia_image(idx)
 
         if self.hmi_data is not None:
-            image_stack = np.concatenate((image_stack, self.get_hmi_image(idx)), axis=0)
+            hmi_images, hmi_headers = self.get_hmi_image(idx)
+            image_stack = np.concatenate((image_stack, hmi_images), axis=0)
+            header_stack.update(hmi_headers)
 
-        if self.eve_data is not None:
-            eve_data = self.get_eve(idx)
-            return image_stack, eve_data
+        if not self.get_header:
+            if self.eve_data is not None:
+                eve_data = self.get_eve(idx)
+                return image_stack, eve_data
+            else:
+                return image_stack
         else:
-            return image_stack
+            if self.eve_data is not None:
+                eve_data = self.get_eve(idx)
+                return image_stack, header_stack, eve_data
+            else:
+                return image_stack, header_stack
 
         # if self.aia_data is not None and self.hmi_data is None:
         #     aia_image = self.get_aia_image(idx)
@@ -152,8 +165,14 @@ class SDOMLDataset(Dataset):
         Returns a numpy array of shape (num_wavelengths, num_frames, height, width).
         """
         aia_image_dict = {}
+        aia_header_dict = {}
+
         for wavelength in self.wavelengths:
             aia_image_dict[wavelength] = []
+
+            if self.get_header:
+                aia_header_dict[wavelength] = []
+
             for frame in range(self.num_frames):
                 idx_row_element = self.aligndata.iloc[idx + frame]
                 idx_wavelength = idx_row_element[f"idx_{wavelength}"]
@@ -164,6 +183,10 @@ class SDOMLDataset(Dataset):
                     img = img * self.mask
 
                 aia_image_dict[wavelength].append(img)
+                
+                if self.get_header:
+                    # aia_header_dict[wavelength].append(self.aia_data[year][wavelength].attrs[self.attrs][idx_wavelength])
+                    aia_header_dict[wavelength].append({keys: values[idx_wavelength] for keys, values in self.aia_data[year][wavelength].attrs.items()})
 
                 if self.normalizations:
                     aia_image_dict[wavelength][-1] -= self.normalizations["AIA"][
@@ -174,8 +197,49 @@ class SDOMLDataset(Dataset):
                     ]["std"]
 
         aia_image = np.array(list(aia_image_dict.values()))
+        # aia_attr = np.array(list(aia_header_dict.values()))
 
-        return aia_image[:,0,:,:] if self.drop_frame_dim else aia_image
+        return (aia_image[:,0,:,:], aia_header_dict) if self.drop_frame_dim else (aia_image, aia_header_dict)
+
+    def get_hmi_image(self, idx):
+        """Get HMI image for a given index.
+        Returns a numpy array of shape (num_channels, num_frames, height, width).
+        """
+        hmi_image_dict = {}
+        hmi_header_dict = {}
+        for component in self.components:
+            hmi_image_dict[component] = []
+
+            if self.get_header:
+                hmi_header_dict[component] = []
+
+            for frame in range(self.num_frames):
+                idx_row_element = self.aligndata.iloc[idx + frame]
+                idx_component = idx_row_element[f"idx_{self.components[0]}"]
+                year = str(idx_row_element.name.year)
+
+                img = self.hmi_data[year][component][idx_component, :, :]
+
+                if self.mask is not None:
+                    img = img * self.mask
+
+                hmi_image_dict[component].append(img)
+
+                if self.get_header:
+                    # hmi_header_dict[component].append(self.hmi_data[year][component].attrs[self.attrs][idx_component])
+                    hmi_header_dict[component].append({keys: values[idx_component] for keys, values in self.aia_data[year][component].attrs.items()})
+
+                if self.normalizations:
+                    hmi_image_dict[component][-1] -= self.normalizations["HMI"][
+                        component
+                    ]["mean"]
+                    hmi_image_dict[component][-1] /= self.normalizations["HMI"][
+                        component
+                    ]["std"]
+
+        hmi_image = np.array(list(hmi_image_dict.values()))
+
+        return (hmi_image[:,0,:,:], hmi_header_dict) if self.drop_frame_dim else (hmi_image, hmi_header_dict)
 
     def get_eve(self, idx):
         """Get EVE data for a given index.
@@ -194,37 +258,6 @@ class SDOMLDataset(Dataset):
         eve_data = np.array(list(eve_ion_dict.values()), dtype=np.float32)
 
         return eve_data
-
-    def get_hmi_image(self, idx):
-        """Get HMI image for a given index.
-        Returns a numpy array of shape (num_channels, num_frames, height, width).
-        """
-        hmi_image_dict = {}
-        for component in self.components:
-            hmi_image_dict[component] = []
-            for frame in range(self.num_frames):
-                idx_row_element = self.aligndata.iloc[idx + frame]
-                idx_component = idx_row_element[f"idx_{self.components[0]}"]
-                year = str(idx_row_element.name.year)
-
-                img = self.hmi_data[year][component][idx_component, :, :]
-
-                if self.mask is not None:
-                    img = img * self.mask
-
-                hmi_image_dict[component].append(img)
-
-                if self.normalizations:
-                    hmi_image_dict[component][-1] -= self.normalizations["HMI"][
-                        component
-                    ]["mean"]
-                    hmi_image_dict[component][-1] /= self.normalizations["HMI"][
-                        component
-                    ]["std"]
-
-        hmi_image = np.array(list(hmi_image_dict.values()))
-
-        return hmi_image[:,0,:,:] if self.drop_frame_dim else hmi_image
 
     def __str__(self):
         output = ""
