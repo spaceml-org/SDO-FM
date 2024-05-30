@@ -352,10 +352,10 @@ class SDOMLDataModule(pl.LightningDataModule):
             ids.append(wavelength_id)
 
         if self.isEVE:
-            if len(self.ions) == 39:
+            if len(self.ions) == 38: # excluding Fe XVI_2
                 ions_id = "EVE_FULL"
             else:
-                ions_id = "_".join(ions).replace(" ", "_")
+                ions_id = "_".join(self.ions).replace(" ", "_")
             ids.append(ions_id)
 
         self.cache_id = f"{'_'.join(ids)}_{self.cadence}"
@@ -544,7 +544,7 @@ class SDOMLDataModule(pl.LightningDataModule):
             print(f"Aligning EVE data")
             df_t_eve = pd.DataFrame(
                 {
-                    "Time": pd.to_datetime(self.eve_data["Time"][:]),
+                    "Time": pd.to_datetime(self.eve_data["Time"]),
                     "idx_eve": np.arange(0, len(self.eve_data["Time"])),
                 }
             )
@@ -559,11 +559,14 @@ class SDOMLDataModule(pl.LightningDataModule):
                 join_series = join_series.join(df_t_obs_eve, how="inner")
 
             # remove missing eve data (missing values are labeled with negative values)
+            ## this will remove all but 16 values if the partial year 2014 is included
             for ion in self.ions:
-                ion_data = self.eve_data[ion][:]
+                if ion == "Fe XVI_2":
+                    continue
+                ion_data = self.eve_data[ion]
                 join_series = join_series.loc[
                     ion_data[join_series["idx_eve"]] > 0
-                ]  # , :] <- why was this here?
+                ]
 
         if join_series is None:
             raise ValueError("No data found for alignment.")
