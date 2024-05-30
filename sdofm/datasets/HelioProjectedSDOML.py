@@ -17,10 +17,10 @@ class HelioProjectedSDOMLDataset(SDOMLDataset):
     def __init__(
         self,
         *args,
-        img_size:int=512,
-        long_range: float = 90, # Goes from 0 - 90. 0 = zero coverage, 90 = full coverage
+        img_size: int = 512,
+        long_range: float = 90,  # Goes from 0 - 90. 0 = zero coverage, 90 = full coverage
         lat_range: float = 90,
-        fast_mode: bool=False,
+        fast_mode: bool = False,
         **kwargs
     ):
         super().__init__(*args, **kwargs)
@@ -29,14 +29,14 @@ class HelioProjectedSDOMLDataset(SDOMLDataset):
         self.fast_mode = fast_mode
         self.img_size = img_size
 
-        latitude = np.arange(-lat_range,lat_range,2*lat_range/img_size) 
-        longitude = np.arange(-long_range,long_range,2*long_range/img_size)
-        grids = np.meshgrid(latitude,longitude)
+        latitude = np.arange(-lat_range, lat_range, 2 * lat_range / img_size)
+        longitude = np.arange(-long_range, long_range, 2 * long_range / img_size)
+        grids = np.meshgrid(latitude, longitude)
         xs = grids[0] * u.deg
         ys = grids[1] * u.deg
 
         # Loads the heliographic stonyhurst coordinate frame and passes constructed coordinate values.
-        self.coords = SkyCoord(xs,ys, frame=frames.HeliographicStonyhurst)
+        self.coords = SkyCoord(xs, ys, frame=frames.HeliographicStonyhurst)
 
         # # This Dataset is only for use on AIA
         # self.num_channels = len(self.wavelengths)
@@ -47,7 +47,7 @@ class HelioProjectedSDOMLDataset(SDOMLDataset):
     def __getitem__(self, idx):
         # uncomment this for debugging
         # return super().__getitem__(idx)
-    
+
         imgs, headers = super().__getitem__(idx)
         channels = list(headers.keys())
 
@@ -59,12 +59,14 @@ class HelioProjectedSDOMLDataset(SDOMLDataset):
                     map = Map((np.array(imgs[idx, :, :]), headers[channels[idx]]))
                     x, y = map.world_to_pixel(self.coords)
                     # Converts pixel locations to integers to use as indices to extract data from image array.
-                    self.pixel_lookup_cache = (x.astype(int),y.astype(int))
-                projected_maps.append(imgs[idx][self.pixel_lookup_cache[0],self.pixel_lookup_cache[1]])
-            else: # recreate the map for every image for correct headers
+                    self.pixel_lookup_cache = (x.astype(int), y.astype(int))
+                projected_maps.append(
+                    imgs[idx][self.pixel_lookup_cache[0], self.pixel_lookup_cache[1]]
+                )
+            else:  # recreate the map for every image for correct headers
                 map = Map((np.array(imgs[idx, :, :]), headers[channels[idx]]))
                 x, y = map.world_to_pixel(self.coords)
-                projected_maps.append(imgs[idx][x.astype(int),y.astype(int)])
+                projected_maps.append(imgs[idx][x.astype(int), y.astype(int)])
 
         return np.stack(projected_maps)
 
@@ -73,10 +75,10 @@ class HelioProjectedSDOMLDataModule(SDOMLDataModule):
     def __init__(
         self,
         *args,
-        long_range: float = 90, # Goes from 0 - 90. 0 = zero coverage, 90 = full coverage
-        lat_range: float= 90,
-        fast_mode: bool=False,
-        img_size: int=512,
+        long_range: float = 90,  # Goes from 0 - 90. 0 = zero coverage, 90 = full coverage
+        lat_range: float = 90,
+        fast_mode: bool = False,
+        img_size: int = 512,
         **kwargs
     ):
         super().__init__(*args, **kwargs)
@@ -116,9 +118,9 @@ class HelioProjectedSDOMLDataModule(SDOMLDataModule):
             get_header=True,
             # Projection Info
             img_size=self.img_size,
-            long_range = self.long_range,
-            lat_range = self.lat_range,
-            fast_mode = self.fast_mode
+            long_range=self.long_range,
+            lat_range=self.lat_range,
+            fast_mode=self.fast_mode,
         )
 
         self.valid_ds = HelioProjectedSDOMLDataset(
@@ -140,9 +142,9 @@ class HelioProjectedSDOMLDataModule(SDOMLDataModule):
             get_header=True,
             # Projection Info
             img_size=self.img_size,
-            long_range = self.long_range,
-            lat_range = self.lat_range,
-            fast_mode = self.fast_mode
+            long_range=self.long_range,
+            lat_range=self.lat_range,
+            fast_mode=self.fast_mode,
         )
 
         self.test_ds = HelioProjectedSDOMLDataset(
@@ -164,7 +166,7 @@ class HelioProjectedSDOMLDataModule(SDOMLDataModule):
             get_header=True,
             # Projection Info
             img_size=self.img_size,
-            long_range = self.long_range,
-            lat_range = self.lat_range,
-            fast_mode = self.fast_mode
+            long_range=self.long_range,
+            lat_range=self.lat_range,
+            fast_mode=self.fast_mode,
         )

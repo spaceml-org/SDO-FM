@@ -35,10 +35,10 @@ class SDOMLDataset(Dataset):
         normalizations=None,
         mask=None,
         num_frames=1,
-        drop_frame_dim = False,
+        drop_frame_dim=False,
         min_date=None,
         max_date=None,
-        get_header = False, #Optional[list] = [],
+        get_header=False,  # Optional[list] = [],
     ):
         """
         aligndata --> aligned indexes for input-output matching
@@ -108,7 +108,7 @@ class SDOMLDataset(Dataset):
 
         # number of frames to return per sample
         self.num_frames = num_frames
-        self.drop_frame_dim = drop_frame_dim # for backwards compat 
+        self.drop_frame_dim = drop_frame_dim  # for backwards compat
         if self.drop_frame_dim:
             assert self.num_frames == 1
 
@@ -183,10 +183,17 @@ class SDOMLDataset(Dataset):
                     img = img * self.mask
 
                 aia_image_dict[wavelength].append(img)
-                
+
                 if self.get_header:
                     # aia_header_dict[wavelength].append(self.aia_data[year][wavelength].attrs[self.attrs][idx_wavelength])
-                    aia_header_dict[wavelength].append({keys: values[idx_wavelength] for keys, values in self.aia_data[year][wavelength].attrs.items()})
+                    aia_header_dict[wavelength].append(
+                        {
+                            keys: values[idx_wavelength]
+                            for keys, values in self.aia_data[year][
+                                wavelength
+                            ].attrs.items()
+                        }
+                    )
 
                 if self.normalizations:
                     aia_image_dict[wavelength][-1] -= self.normalizations["AIA"][
@@ -199,7 +206,11 @@ class SDOMLDataset(Dataset):
         aia_image = np.array(list(aia_image_dict.values()))
         # aia_attr = np.array(list(aia_header_dict.values()))
 
-        return (aia_image[:,0,:,:], aia_header_dict) if self.drop_frame_dim else (aia_image, aia_header_dict)
+        return (
+            (aia_image[:, 0, :, :], aia_header_dict)
+            if self.drop_frame_dim
+            else (aia_image, aia_header_dict)
+        )
 
     def get_hmi_image(self, idx):
         """Get HMI image for a given index.
@@ -227,7 +238,14 @@ class SDOMLDataset(Dataset):
 
                 if self.get_header:
                     # hmi_header_dict[component].append(self.hmi_data[year][component].attrs[self.attrs][idx_component])
-                    hmi_header_dict[component].append({keys: values[idx_component] for keys, values in self.aia_data[year][component].attrs.items()})
+                    hmi_header_dict[component].append(
+                        {
+                            keys: values[idx_component]
+                            for keys, values in self.aia_data[year][
+                                component
+                            ].attrs.items()
+                        }
+                    )
 
                 if self.normalizations:
                     hmi_image_dict[component][-1] -= self.normalizations["HMI"][
@@ -239,7 +257,11 @@ class SDOMLDataset(Dataset):
 
         hmi_image = np.array(list(hmi_image_dict.values()))
 
-        return (hmi_image[:,0,:,:], hmi_header_dict) if self.drop_frame_dim else (hmi_image, hmi_header_dict)
+        return (
+            (hmi_image[:, 0, :, :], hmi_header_dict)
+            if self.drop_frame_dim
+            else (hmi_image, hmi_header_dict)
+        )
 
     def get_eve(self, idx):
         """Get EVE data for a given index.
@@ -368,7 +390,7 @@ class SDOMLDataModule(pl.LightningDataModule):
             ]
 
         # Cache filenames
-        ids = []      
+        ids = []
 
         if self.isHMI:
             if len(self.components) == 3:
@@ -383,7 +405,7 @@ class SDOMLDataModule(pl.LightningDataModule):
             elif len(self.wavelengths) > 0 and len(self.wavelengths) < 9:
                 wavelength_id = "_".join(self.wavelengths)
             ids.append(wavelength_id)
-        
+
         if self.isEVE:
             if len(self.ions) == 39:
                 ions_id = "EVE_FULL"
