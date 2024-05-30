@@ -25,6 +25,7 @@ class SAMAE(BaseModule):
         mlp_ratio=4.0,
         norm_layer="LayerNorm",
         norm_pix_loss=False,
+        masking_ratio=0.75,
         # masking
         masking_type="random",  # 'random' or 'solar_aware'
         active_region_mu_degs=15.73,
@@ -41,6 +42,7 @@ class SAMAE(BaseModule):
         super().__init__(*args, **kwargs)
 
         self.validation_metrics = []
+        self.masking_ratio = masking_ratio
 
         self.autoencoder = SolarAwareMaskedAutoencoderViT3D(
             img_size,
@@ -83,7 +85,7 @@ class SAMAE(BaseModule):
     def training_step(self, batch, batch_idx):
         # training_step defines the train loop.
         x = batch
-        loss, x_hat, mask = self.autoencoder(x)
+        loss, x_hat, mask = self.autoencoder(x, mask_ratio=self.masking_ratio)
         x_hat = self.autoencoder.unpatchify(x_hat)
         loss = F.mse_loss(x_hat, x)
         self.log("train_loss", loss, sync_dist=True)
@@ -91,7 +93,7 @@ class SAMAE(BaseModule):
 
     def validation_step(self, batch, batch_idx):
         x = batch
-        loss, x_hat, mask = self.autoencoder(x)
+        loss, x_hat, mask = self.autoencoder(x, mask_ratio=self.masking_ratio)
         x_hat = self.autoencoder.unpatchify(x_hat)
         self.validation_metrics.append(
             bench_recon.get_metrics(
@@ -109,7 +111,7 @@ class SAMAE(BaseModule):
         self.log("val_loss", loss)
 
     def forward(self, x):
-        loss, x_hat, mask = self.autoencoder(x)
+        loss, x_hat, mask = self.autoencoder(x, mask_ratio=self.masking_ratio)
         x_hat = self.autoencoder.unpatchify(x_hat)
         return loss, x_hat, mask
 
