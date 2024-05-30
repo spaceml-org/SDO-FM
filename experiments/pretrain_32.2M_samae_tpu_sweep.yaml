@@ -28,7 +28,7 @@ experiment:
     tags: []
     notes: ""
     output_directory: "wandb_output"
-    log_model: True # can be True (final checkpoint), False (no checkpointing), or "all" (for all epoches)
+    log_model: "all" # can be True (final checkpoint), False (no checkpointing), or "all" (for all epoches)
   gcp_storage: # this will checkpoint all epoches, perhaps clean up this config
     enabled: true
     bucket: "sdofm-checkpoints"
@@ -56,6 +56,7 @@ data:
     holdout: []
   num_workers: 24    # set appropriately for your machine
   prefetch_factor: 3
+  num_frames: 5 # WARNING: This is only read for FINETUNING, model num_frames overrides in BACKBONE
   # output_directory: "wandb_output"
   sdoml:
     base_directory: "/mnt/sdoml"
@@ -88,6 +89,7 @@ model:
     mlp_ratio: 4.0
     norm_layer: 'LayerNorm'
     norm_pix_loss: False
+    masking_ratio: 0.75
   samae:
     # uses all parameters as in mae plus these
     masking_type: "random"  # 'random' or 'solar_aware'
@@ -140,14 +142,13 @@ model:
     learning_rate: 0.0001
     weight_decay: 3e-4 # 0.0
     optimiser: "adam"
-    epochs: 100
+    epochs: 2
     patience: 2
 
 # hydra configuration
 hydra:
-  mode: RUN
-  # run:
-  #   dir: ${data.output_directory}/${now:%Y-%m-%d-%H-%M-%S}
-  # sweep:
-  #   dir: ${hydra.run.dir}
-  #   subdir: ${hydra.job.num}
+  sweeper:
+    params:
+      model.mae.embed_dim: 256, 512
+      model.mae.masking_ratio: 0.5, 0.75
+      model.samae.masking_type: "random", "solar_aware"
