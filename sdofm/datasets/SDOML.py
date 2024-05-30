@@ -109,6 +109,7 @@ class SDOMLDataset(Dataset):
         # number of frames to return per sample
         self.num_frames = num_frames
         self.drop_frame_dim = drop_frame_dim  # for backwards compat
+        self.drop_frame_dim = drop_frame_dim  # for backwards compat
         if self.drop_frame_dim:
             assert self.num_frames == 1
 
@@ -382,7 +383,7 @@ class SDOMLDataModule(pl.LightningDataModule):
             if i not in self.test_months + self.val_months + self.holdout_months
         ]
 
-        if self.isAIA or self.isHMI:
+        if not self.isEVE:
             self.training_years = [int(year) for year in self.aia_data.keys()]
         else:  # EVE included, limit to 2010-2014
             self.training_years = [
@@ -390,6 +391,7 @@ class SDOMLDataModule(pl.LightningDataModule):
             ]
 
         # Cache filenames
+        ids = []
         ids = []
 
         if self.isHMI:
@@ -405,6 +407,7 @@ class SDOMLDataModule(pl.LightningDataModule):
             elif len(self.wavelengths) > 0 and len(self.wavelengths) < 9:
                 wavelength_id = "_".join(self.wavelengths)
             ids.append(wavelength_id)
+
 
         if self.isEVE:
             if len(self.ions) == 39:
@@ -616,7 +619,9 @@ class SDOMLDataModule(pl.LightningDataModule):
             # remove missing eve data (missing values are labeled with negative values)
             for ion in self.ions:
                 ion_data = self.eve_data[ion][:]
-                join_series = join_series.loc[ion_data[join_series["idx_eve"]] > 0, :]
+                join_series = join_series.loc[
+                    ion_data[join_series["idx_eve"]] > 0
+                ]  # , :] <- why was this here?
 
         if join_series is None:
             raise ValueError("No data found for alignment.")

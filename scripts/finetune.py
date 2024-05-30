@@ -73,15 +73,25 @@ class Finetuner(object):
                 self.model_class = HybridIrradianceModel
 
                 self.data_module = SDOMLDataModule(
-                    hmi_path=(os.path.join(
-                        cfg.data.sdoml.base_directory, cfg.data.sdoml.sub_directory.hmi
-                    ) if cfg.data.sdoml.sub_directory.hmi else None),
-                    aia_path=(os.path.join(
-                        cfg.data.sdoml.base_directory, cfg.data.sdoml.sub_directory.aia
-                    ) if cfg.data.sdoml.sub_directory.aia else None),
+                    hmi_path=(
+                        os.path.join(
+                            cfg.data.sdoml.base_directory,
+                            cfg.data.sdoml.sub_directory.hmi,
+                        )
+                        if cfg.data.sdoml.sub_directory.hmi
+                        else None
+                    ),
+                    aia_path=(
+                        os.path.join(
+                            cfg.data.sdoml.base_directory,
+                            cfg.data.sdoml.sub_directory.aia,
+                        )
+                        if cfg.data.sdoml.sub_directory.aia
+                        else None
+                    ),
                     eve_path=os.path.join(
                         cfg.data.sdoml.base_directory, cfg.data.sdoml.sub_directory.eve
-                    )
+                    ),
                     components=cfg.data.sdoml.components,
                     wavelengths=cfg.data.sdoml.wavelengths,
                     ions=cfg.data.sdoml.ions,
