@@ -121,7 +121,7 @@ model:
   # FINE-TUNERS
   autocalibration:
     num_neck_filters: 32
-    output_dim: 1 # not sure why this is implemented for autocorrelation, should be a scalar
+    output_dim: 9 # num channels? Not sure why this is implemented for autocorrelation, should be a scalar
     loss: "mse" # options: "mse", "heteroscedastic"
     freeze_encoder: true
     

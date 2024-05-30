@@ -101,8 +101,8 @@ class HybridIrradianceModel(BaseModule):
         lr_linear=0.01,
         lr_cnn=0.0001,
         cnn_dp=0.75,
-        ln_params=None, # used in lambda function out of scope?
-        epochs_linear=None, # out of scope
+        ln_params=None,  # used in lambda function out of scope?
+        epochs_linear=None,  # out of scope
         **kwargs,
     ):
 

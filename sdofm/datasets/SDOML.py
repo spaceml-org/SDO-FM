@@ -105,7 +105,7 @@ class SDOMLDataset(Dataset):
 
         # number of frames to return per sample
         self.num_frames = num_frames
-        self.drop_frame_dim = drop_frame_dim # for backwards compat 
+        self.drop_frame_dim = drop_frame_dim  # for backwards compat
         if self.drop_frame_dim:
             assert self.num_frames == 1
 
@@ -175,7 +175,7 @@ class SDOMLDataset(Dataset):
 
         aia_image = np.array(list(aia_image_dict.values()))
 
-        return aia_image[:,0,:,:] if self.drop_frame_dim else aia_image
+        return aia_image[:, 0, :, :] if self.drop_frame_dim else aia_image
 
     def get_eve(self, idx):
         """Get EVE data for a given index.
@@ -224,7 +224,7 @@ class SDOMLDataset(Dataset):
 
         hmi_image = np.array(list(hmi_image_dict.values()))
 
-        return hmi_image[:,0,:,:] if self.drop_frame_dim else hmi_image
+        return hmi_image[:, 0, :, :] if self.drop_frame_dim else hmi_image
 
     def __str__(self):
         output = ""
@@ -335,7 +335,7 @@ class SDOMLDataModule(pl.LightningDataModule):
             ]
 
         # Cache filenames
-        ids = []      
+        ids = []
 
         if self.isHMI:
             if len(self.components) == 3:
@@ -350,7 +350,7 @@ class SDOMLDataModule(pl.LightningDataModule):
             elif len(self.wavelengths) > 0 and len(self.wavelengths) < 9:
                 wavelength_id = "_".join(self.wavelengths)
             ids.append(wavelength_id)
-        
+
         if self.isEVE:
             if len(self.ions) == 39:
                 ions_id = "EVE_FULL"
@@ -561,7 +561,9 @@ class SDOMLDataModule(pl.LightningDataModule):
             # remove missing eve data (missing values are labeled with negative values)
             for ion in self.ions:
                 ion_data = self.eve_data[ion][:]
-                join_series = join_series.loc[ion_data[join_series["idx_eve"]] > 0] # , :] <- why was this here?
+                join_series = join_series.loc[
+                    ion_data[join_series["idx_eve"]] > 0
+                ]  # , :] <- why was this here?
 
         if join_series is None:
             raise ValueError("No data found for alignment.")

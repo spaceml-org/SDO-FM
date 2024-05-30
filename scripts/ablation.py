@@ -12,6 +12,7 @@ from sdofm.datasets import SDOMLDataModule, DegradedSDOMLDataModule
 from sdofm.ablation import AblationAutocalibration
 from sdofm.models import HybridIrradianceModel
 
+
 class Ablation(object):
     def __init__(self, cfg, logger=None, profiler=None):
         self.cfg = cfg
@@ -62,7 +63,7 @@ class Ablation(object):
                         img_size=512,
                         channels=9,
                         # **self.cfg.model.autocalibration,
-                        output_dim = self.cfg.model.autocalibration.output_dim,
+                        output_dim=self.cfg.model.autocalibration.output_dim,
                         loss=self.cfg.model.autocalibration.loss,
                         # general
                         optimiser=self.cfg.model.opt.optimiser,
@@ -71,15 +72,26 @@ class Ablation(object):
                     )
             case "virtualeve":
                 import numpy as np
+
                 self.model_class = HybridIrradianceModel
 
                 self.data_module = SDOMLDataModule(
-                    hmi_path=(os.path.join(
-                        cfg.data.sdoml.base_directory, cfg.data.sdoml.sub_directory.hmi
-                    ) if cfg.data.sdoml.sub_directory.hmi else None),
-                    aia_path=(os.path.join(
-                        cfg.data.sdoml.base_directory, cfg.data.sdoml.sub_directory.aia
-                    ) if cfg.data.sdoml.sub_directory.aia else None),
+                    hmi_path=(
+                        os.path.join(
+                            cfg.data.sdoml.base_directory,
+                            cfg.data.sdoml.sub_directory.hmi,
+                        )
+                        if cfg.data.sdoml.sub_directory.hmi
+                        else None
+                    ),
+                    aia_path=(
+                        os.path.join(
+                            cfg.data.sdoml.base_directory,
+                            cfg.data.sdoml.sub_directory.aia,
+                        )
+                        if cfg.data.sdoml.sub_directory.aia
+                        else None
+                    ),
                     eve_path=os.path.join(
                         cfg.data.sdoml.base_directory, cfg.data.sdoml.sub_directory.eve
                     ),
@@ -106,15 +118,26 @@ class Ablation(object):
                 if cfg.experiment.resuming:
                     self.model = self.load_checkpoint(cfg.experiment.checkpoint)
                 else:
-                    d_input  = len(self.data_module.wavelengths) if self.data_module.wavelengths else 0
-                    d_input += len(self.data_module.components) if self.data_module.components else 0
+                    d_input = (
+                        len(self.data_module.wavelengths)
+                        if self.data_module.wavelengths
+                        else 0
+                    )
+                    d_input += (
+                        len(self.data_module.components)
+                        if self.data_module.components
+                        else 0
+                    )
                     d_output = len(self.data_module.ions)
 
                     self.model = self.model_class(
                         # virtual eve
                         d_input=d_input,
                         d_output=d_output,
-                        eve_norm = np.array(self.data_module.normalizations["EVE"]["eve_norm"], dtype=np.float32),
+                        eve_norm=np.array(
+                            self.data_module.normalizations["EVE"]["eve_norm"],
+                            dtype=np.float32,
+                        ),
                         **self.cfg.model.virtualeve,
                         # general
                         optimiser=self.cfg.model.opt.optimiser,
@@ -124,17 +147,23 @@ class Ablation(object):
 
                     self.model.set_train_mode("linear")
                     # add switch mode callback
-                    self.callbacks.append(pl.callbacks.LambdaCallback(
-                        on_train_epoch_start=(
-                            lambda trainer, 
-                            pl_module: self.model.set_train_mode("cnn") if self.trainer.current_epoch > self.cfg.model.virtualeve.epochs_linear else None
+                    self.callbacks.append(
+                        pl.callbacks.LambdaCallback(
+                            on_train_epoch_start=(
+                                lambda trainer, pl_module: (
+                                    self.model.set_train_mode("cnn")
+                                    if self.trainer.current_epoch
+                                    > self.cfg.model.virtualeve.epochs_linear
+                                    else None
+                                )
+                            )
                         )
-                    ))
+                    )
 
             case _:
-                    raise NotImplementedError(
-                        f"Model {cfg.experiment.model} not implemented"
-                    )
+                raise NotImplementedError(
+                    f"Model {cfg.experiment.model} not implemented"
+                )
 
     def load_checkpoint(self, checkpoint_reference):
         print("Loading checkpoint...")
@@ -171,7 +200,7 @@ class Ablation(object):
                 profiler=self.profiler,
                 logger=self.logger,
                 enable_checkpointing=True,
-                callbacks = self.callbacks,
+                callbacks=self.callbacks,
                 strategy="ddp",
                 log_every_n_steps=30,
             )
