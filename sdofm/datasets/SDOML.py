@@ -352,7 +352,7 @@ class SDOMLDataModule(pl.LightningDataModule):
             ids.append(wavelength_id)
 
         if self.isEVE:
-            if len(self.ions) == 38: # excluding Fe XVI_2
+            if len(self.ions) == 38:  # excluding Fe XVI_2
                 ions_id = "EVE_FULL"
             else:
                 ions_id = "_".join(self.ions).replace(" ", "_")
@@ -564,9 +564,7 @@ class SDOMLDataModule(pl.LightningDataModule):
                 if ion == "Fe XVI_2":
                     continue
                 ion_data = self.eve_data[ion]
-                join_series = join_series.loc[
-                    ion_data[join_series["idx_eve"]] > 0
-                ]
+                join_series = join_series.loc[ion_data[join_series["idx_eve"]] > 0]
 
         if join_series is None:
             raise ValueError("No data found for alignment.")
