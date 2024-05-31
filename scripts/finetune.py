@@ -9,7 +9,7 @@ import wandb
 
 from sdofm import utils
 from sdofm.datasets import SDOMLDataModule, DegradedSDOMLDataModule
-from sdofm.finetuning import Autocalibration, HybridIrradianceModel
+from sdofm.finetuning import Autocalibration, VirtualEVE
 from .pretrain import Pretrainer
 
 
@@ -22,6 +22,7 @@ class Finetuner(object):
         self.data_module = None
         self.model = None
         self.model_class = None
+        self.callbacks = []
 
         backbone = Pretrainer(cfg, logger=logger, is_backbone=True)
 
@@ -70,7 +71,7 @@ class Finetuner(object):
                         hyperparam_ignore=["backbone"],
                     )
             case "virtualeve":
-                self.model_class = HybridIrradianceModel
+                self.model_class = VirtualEVE
 
                 self.data_module = SDOMLDataModule(
                     hmi_path=(
@@ -81,6 +82,7 @@ class Finetuner(object):
                         if cfg.data.sdoml.sub_directory.hmi
                         else None
                     ),
+                    # hmi_path=None,
                     aia_path=(
                         os.path.join(
                             cfg.data.sdoml.base_directory,
@@ -108,23 +110,52 @@ class Finetuner(object):
                     min_date=cfg.data.min_date,
                     max_date=cfg.data.max_date,
                     num_frames=cfg.data.num_frames,
+                    drop_frame_dim=cfg.data.drop_frame_dim,
                 )
                 self.data_module.setup()
 
                 if cfg.experiment.resuming:
                     self.model = self.load_checkpoint(cfg.experiment.checkpoint)
                 else:
+                    import numpy as np
+
+                    d_output = len(self.data_module.ions)
+
                     self.model = self.model_class(
-                        # **self.cfg.model.mae,
+                        # backbone
                         img_size=512,
                         patch_size=16,
                         embed_dim=128,
-                        **self.cfg.model.autocalibration,
+                        num_frames=cfg.data.num_frames,
+                        # virtual eve params
+                        **self.cfg.model.virtualeve,
+                        d_output=d_output,
+                        eve_norm=np.array(
+                            self.data_module.normalizations["EVE"]["eve_norm"],
+                            dtype=np.float32,
+                        ),
+                        # genreal
                         optimiser=self.cfg.model.opt.optimiser,
                         lr=self.cfg.model.opt.learning_rate,
                         weight_decay=self.cfg.model.opt.weight_decay,
+                        # backbone
                         backbone=backbone.model,
                         hyperparam_ignore=["backbone"],
+                    )
+
+                    self.model.head.set_train_mode("linear")
+                    # add switch mode callback
+                    self.callbacks.append(
+                        pl.callbacks.LambdaCallback(
+                            on_train_epoch_start=(
+                                lambda trainer, pl_module: (
+                                    self.model.head.set_train_mode("cnn")
+                                    if self.trainer.current_epoch
+                                    > self.cfg.model.virtualeve.epochs_linear
+                                    else None
+                                )
+                            )
+                        )
                     )
             case _:
                 raise NotImplementedError(
@@ -158,7 +189,7 @@ class Finetuner(object):
         print("\nFINE TUNING\n")
 
         if self.cfg.experiment.distributed:
-            trainer = pl.Trainer(
+            self.trainer = pl.Trainer(
                 devices=self.cfg.experiment.distributed.world_size,
                 accelerator=self.cfg.experiment.accelerator,
                 max_epochs=self.cfg.model.opt.epochs,
@@ -166,16 +197,17 @@ class Finetuner(object):
                 profiler=self.profiler,
                 logger=self.logger,
                 enable_checkpointing=True,
-                strategy="ddp",
+                callbacks=self.callbacks,
+                # strategy="ddp",
             )
         else:
-            trainer = pl.Trainer(
+            self.trainer = pl.Trainer(
                 accelerator=self.cfg.experiment.accelerator,
                 max_epochs=self.cfg.model.opt.epochs,
                 logger=self.logger,
             )
-        trainer.fit(model=self.model, datamodule=self.data_module)
-        return trainer
+        self.trainer.fit(model=self.model, datamodule=self.data_module)
+        return self.trainer
 
     def evaluate(self):
         self.trainer.evaluate()

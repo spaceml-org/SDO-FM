@@ -36,7 +36,7 @@ experiment:
   profiler: null                # options are 'XLAProfiler' (TPU), 'PyTorchProfiler', warning: PyTorchProfiler only works on cpu/gpu according to docs
   distributed:
     enabled: true               # set to true to use more than one device
-    world_size: "auto"          # The "auto" option recognizes the machine you are on, and selects the appropriate number of accelerators.
+    world_size: 1          # The "auto" option recognizes the machine you are on, and selects the appropriate number of accelerators.
 
 # dataset configuration
 data:
@@ -47,9 +47,10 @@ data:
     val: [11]
     test: [12]
     holdout: []
-  num_workers: 8               # set appropriately for your machine
+  num_workers: 8                # set appropriately for your machine
   prefetch_factor: 3            # TODO: not implemented, 2 is default
   num_frames: 5 # WARNING: This is only read for FINETUNING, model num_frames overrides in BACKBONE
+  drop_frame_dim: False         # Requires num_frames=1, for backwards compatibility
   sdoml:
     base_directory: "/mnt/sdoml"
     sub_directory:
@@ -124,10 +125,12 @@ model:
     loss: "mse" # options: "mse", "heteroscedastic"
     freeze_encoder: true
   virtualeve:
+    num_neck_filters: 32
     cnn_model: "efficientnet_b3"
     lr_linear: 0.01
     lr_cnn: 0.0001
     cnn_dp: 0.75
+    epochs_linear: 50
     
   # ML optimization arguments:
   opt:
