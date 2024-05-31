@@ -108,6 +108,13 @@ def main(cfg: DictConfig) -> None:
             "offline" if not cfg.experiment.wandb.enable else "online"
         )
 
+        resume = "never"
+        run_id = None
+        if cfg.experiment.resuming:
+            resume="allow"
+            run_id = cfg.experiment.checkpoint.split(":")[0].split("-")[-1]
+            print("Will attempt to resume W&B run", run_id)
+
         logger = WandbLogger(
             # WandbLogger params
             name=cfg.experiment.name,
@@ -121,7 +128,10 @@ def main(cfg: DictConfig) -> None:
             save_code=True,
             job_type=cfg.experiment.wandb.job_type,
             config=flatten_dict(cfg),
+            resume=resume,
+            id=run_id
         )
+    
     else:
         logger = None
 
