@@ -33,8 +33,6 @@ class SAMAE(BaseModule):
         active_region_scale=1.0,
         active_region_abs_lon_max_degs=60,
         active_region_abs_lat_max_degs=60,
-        #
-        checkpoint_path=None,
         # pass to BaseModule
         *args,
         **kwargs,
@@ -66,21 +64,21 @@ class SAMAE(BaseModule):
             active_region_abs_lon_max_degs,
             active_region_abs_lat_max_degs,
         )
-        if checkpoint_path is not None:
-            state_dict = torch.load(
-                checkpoint_path, map_location=self.autoencoder.device
-            )
+        # if checkpoint_path is not None:
+        #     state_dict = torch.load(
+        #         checkpoint_path, map_location=self.autoencoder.device
+        #     )
 
-            #            if num_frames != 3:
-            #                del state_dict["pos_embed"]
-            #                del state_dict["decoder_pos_embed"]
-            #
-            #            if in_chans != 6:
-            #                del state_dict["patch_embed.proj.weight"]
-            #                del state_dict["decoder_pred.weight"]
-            #                del state_dict["decoder_pred.bias"]
+        #     #            if num_frames != 3:
+        #     #                del state_dict["pos_embed"]
+        #     #                del state_dict["decoder_pos_embed"]
+        #     #
+        #     #            if in_chans != 6:
+        #     #                del state_dict["patch_embed.proj.weight"]
+        #     #                del state_dict["decoder_pred.weight"]
+        #     #                del state_dict["decoder_pred.bias"]
 
-            self.autoencoder.load_state_dict(state_dict, strict=False)
+        #     self.autoencoder.load_state_dict(state_dict, strict=False)
 
     def training_step(self, batch, batch_idx):
         # training_step defines the train loop.
