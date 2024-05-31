@@ -14,9 +14,6 @@ from tqdm import tqdm
 # cm = mpl.colors.LinearSegmentedColormap.from_list('my_colormap', colors, 1024)
 
 LABELS = [
-    "HMI Bx",
-    "HMI By",
-    "HMI Bz",
     "AIA 94 Å",
     "AIA 131 Å",
     "AIA 171 Å",
@@ -26,6 +23,9 @@ LABELS = [
     "AIA 335 Å",
     "AIA 1600 Å",
     "AIA 1700 Å",
+    "HMI Bx",
+    "HMI By",
+    "HMI Bz",
 ]
 
 cms = [
@@ -190,6 +190,7 @@ def sdo_reconstruction_plot(
     colored=True,
     figsize=(36, 12),
     date=None,
+    title=None,
 ):
     if data_original.ndim != 3:
         raise ValueError("Expecting 3d data (CxHxW)")
@@ -307,8 +308,10 @@ def sdo_reconstruction_plot(
     axs[36].set_ylabel("Histograms (normalized)", fontsize="large")
 
     plt.tight_layout(rect=[0, 0, 1, 0.975])
+    if title is not None:
+        plt.suptitle(title)
     if date is not None:
-        plt.suptitle(date)
+        plt.title(date)
     if file_name is None:
         plt.show()
     else:
