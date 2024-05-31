@@ -96,6 +96,7 @@ class MAE(BaseModule):
 
             # this only occurs on rank zero only
             df = DataFrame(batch_metrics)
+            df['mean'] = df.mean(numeric_only=True, axis=1)
             df["metric"] = df.index
             cols = df.columns.tolist()
             self.logger.log_table(
