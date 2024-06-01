@@ -111,7 +111,7 @@ def main(cfg: DictConfig) -> None:
         resume = "never"
         run_id = None
         if cfg.experiment.resuming:
-            resume="allow"
+            resume = "allow"
             run_id = cfg.experiment.checkpoint.split(":")[0].split("-")[-1]
             print("Will attempt to resume W&B run", run_id)
 
@@ -129,9 +129,9 @@ def main(cfg: DictConfig) -> None:
             job_type=cfg.experiment.wandb.job_type,
             config=flatten_dict(cfg),
             resume=resume,
-            id=run_id
+            id=run_id,
         )
-    
+
     else:
         logger = None
 
