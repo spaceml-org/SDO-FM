@@ -25,6 +25,7 @@ class SAMAE(BaseModule):
         mlp_ratio=4.0,
         norm_layer="LayerNorm",
         norm_pix_loss=False,
+        masking_ratio=0.75,
         # masking
         masking_type="random",  # 'random' or 'solar_aware'
         active_region_mu_degs=15.73,
@@ -32,8 +33,6 @@ class SAMAE(BaseModule):
         active_region_scale=1.0,
         active_region_abs_lon_max_degs=60,
         active_region_abs_lat_max_degs=60,
-        #
-        checkpoint_path=None,
         # pass to BaseModule
         *args,
         **kwargs,
@@ -41,6 +40,7 @@ class SAMAE(BaseModule):
         super().__init__(*args, **kwargs)
 
         self.validation_metrics = []
+        self.masking_ratio = masking_ratio
 
         self.autoencoder = SolarAwareMaskedAutoencoderViT3D(
             img_size,
@@ -64,26 +64,26 @@ class SAMAE(BaseModule):
             active_region_abs_lon_max_degs,
             active_region_abs_lat_max_degs,
         )
-        if checkpoint_path is not None:
-            state_dict = torch.load(
-                checkpoint_path, map_location=self.autoencoder.device
-            )
+        # if checkpoint_path is not None:
+        #     state_dict = torch.load(
+        #         checkpoint_path, map_location=self.autoencoder.device
+        #     )
 
-            #            if num_frames != 3:
-            #                del state_dict["pos_embed"]
-            #                del state_dict["decoder_pos_embed"]
-            #
-            #            if in_chans != 6:
-            #                del state_dict["patch_embed.proj.weight"]
-            #                del state_dict["decoder_pred.weight"]
-            #                del state_dict["decoder_pred.bias"]
+        #     #            if num_frames != 3:
+        #     #                del state_dict["pos_embed"]
+        #     #                del state_dict["decoder_pos_embed"]
+        #     #
+        #     #            if in_chans != 6:
+        #     #                del state_dict["patch_embed.proj.weight"]
+        #     #                del state_dict["decoder_pred.weight"]
+        #     #                del state_dict["decoder_pred.bias"]
 
-            self.autoencoder.load_state_dict(state_dict, strict=False)
+        #     self.autoencoder.load_state_dict(state_dict, strict=False)
 
     def training_step(self, batch, batch_idx):
         # training_step defines the train loop.
         x = batch
-        loss, x_hat, mask = self.autoencoder(x)
+        loss, x_hat, mask = self.autoencoder(x, mask_ratio=self.masking_ratio)
         x_hat = self.autoencoder.unpatchify(x_hat)
         loss = F.mse_loss(x_hat, x)
         self.log("train_loss", loss, sync_dist=True)
@@ -91,7 +91,7 @@ class SAMAE(BaseModule):
 
     def validation_step(self, batch, batch_idx):
         x = batch
-        loss, x_hat, mask = self.autoencoder(x)
+        loss, x_hat, mask = self.autoencoder(x, mask_ratio=self.masking_ratio)
         x_hat = self.autoencoder.unpatchify(x_hat)
         self.validation_metrics.append(
             bench_recon.get_metrics(
@@ -109,7 +109,7 @@ class SAMAE(BaseModule):
         self.log("val_loss", loss)
 
     def forward(self, x):
-        loss, x_hat, mask = self.autoencoder(x)
+        loss, x_hat, mask = self.autoencoder(x, mask_ratio=self.masking_ratio)
         x_hat = self.autoencoder.unpatchify(x_hat)
         return loss, x_hat, mask
 
@@ -127,6 +127,7 @@ class SAMAE(BaseModule):
 
             # this only occurs on rank zero only
             df = DataFrame(batch_metrics)
+            df["mean"] = df.mean(numeric_only=True, axis=1)
             df["metric"] = df.index
             cols = df.columns.tolist()
             self.logger.log_table(

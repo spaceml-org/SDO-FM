@@ -25,6 +25,7 @@ class MAE(BaseModule):
         mlp_ratio=4.0,
         norm_layer="LayerNorm",
         norm_pix_loss=False,
+        masking_ratio=0.75,
         # pass to BaseModule
         *args,
         **kwargs,
@@ -32,6 +33,7 @@ class MAE(BaseModule):
         super().__init__(*args, **kwargs)
         # self.validation_step_outputs = {'x': [], 'x_hat': []}
         self.validation_metrics = []
+        self.masking_ratio = masking_ratio
 
         self.autoencoder = MaskedAutoencoderViT3D(
             img_size,
@@ -54,7 +56,7 @@ class MAE(BaseModule):
     def training_step(self, batch, batch_idx):
         # training_step defines the train loop.
         x = batch
-        loss, x_hat, mask = self.autoencoder(x)
+        loss, x_hat, mask = self.autoencoder(x, mask_ratio=self.masking_ratio)
         x_hat = self.autoencoder.unpatchify(x_hat)
         loss = F.mse_loss(x_hat, x)
         self.log("train_loss", loss, on_step=True, on_epoch=True, prog_bar=True)
@@ -62,7 +64,7 @@ class MAE(BaseModule):
 
     def validation_step(self, batch, batch_idx):
         x = batch
-        loss, x_hat, mask = self.autoencoder(x)
+        loss, x_hat, mask = self.autoencoder(x, mask_ratio=self.masking_ratio)
         x_hat = self.autoencoder.unpatchify(x_hat)
         loss = F.mse_loss(x_hat, x)
         for i in range(x.shape[0]):
@@ -76,7 +78,7 @@ class MAE(BaseModule):
         self.log("val_loss", loss)
 
     def forward(self, x):
-        loss, x_hat, mask = self.autoencoder(x)
+        loss, x_hat, mask = self.autoencoder(x, mask_ratio=self.masking_ratio)
         x_hat = self.autoencoder.unpatchify(x_hat)
         return loss, x_hat, mask
 
@@ -94,6 +96,7 @@ class MAE(BaseModule):
 
             # this only occurs on rank zero only
             df = DataFrame(batch_metrics)
+            df["mean"] = df.mean(numeric_only=True, axis=1)
             df["metric"] = df.index
             cols = df.columns.tolist()
             self.logger.log_table(
