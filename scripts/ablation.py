@@ -202,7 +202,7 @@ class Ablation(object):
                 enable_checkpointing=True,
                 callbacks=self.callbacks,
                 strategy=self.cfg.experiment.distributed.strategy,
-                log_every_n_steps=30,
+                log_every_n_steps=10,
             )
         else:
             self.trainer = pl.Trainer(
