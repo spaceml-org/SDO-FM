@@ -192,11 +192,17 @@ class RandomIntervalSDOMLDataset(SDOMLDataset):
         if self.eve_data:
             r['eve_data'] = eve_data
 
-        if self.dim:
+
+        if self.dim == 'single':
+            dim_factor = np.random.random()
+            r['dimmed_image_stack'] = image_stack * dim_factor
+            r['dim_factor'] = np.r_[dim_factor].astype(np.float32)
+
+        elif self.dim:
             num_channels = image_stack.shape[0]
             dim_factor = np.random.random(num_channels).reshape([-1,1,1,1])
             r['dimmed_image_stack'] = image_stack * dim_factor
-            r['dim_factor'] = dim_factor.reshape(-1)
+            r['dim_factor'] = dim_factor.reshape(-1).astype(np.float32)
 
         return r
             

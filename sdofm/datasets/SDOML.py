@@ -8,7 +8,7 @@ import dask
 import dask.array as da
 import numpy as np
 import pandas as pd
-import pytorch_lightning as pl
+import lightning.pytorch as pl
 import torch
 import zarr
 from dask.array import stats
@@ -34,6 +34,9 @@ class SDOMLDataset(Dataset):
         normalizations=None,
         mask=None,
         num_frames=1,
+        drop_frame_dim=False,
+        min_date=None,
+        max_date=None,
     ):
         """
         aligndata --> aligned indexes for input-output matching
@@ -48,6 +51,7 @@ class SDOMLDataset(Dataset):
         use_normalizations: to use or not use normalizations, e.g. if this is test data, we don't want to use normalizations
         mask: to apply or not apply the HMI mask to AIA and HMI data
         """
+        super().__init__()
 
         self.aligndata = aligndata
 
@@ -61,22 +65,23 @@ class SDOMLDataset(Dataset):
         self.components = components
         self.wavelengths = wavelengths
         self.ions = ions
-        if self.components is None:
-            self.components = ALL_COMPONENTS
-        if self.wavelengths is None:
-            self.wavelengths = ALL_WAVELENGTHS
-        if self.ions is None:
-            self.ions = ALL_IONS
 
         # Loading data
         # HMI
         if self.hmi_data is not None:
+            if self.components is None:
+                self.components = ALL_COMPONENTS
             self.components.sort()
         # AIA
         if self.aia_data is not None:
+            if self.wavelengths is None:
+                self.wavelengths = ALL_WAVELENGTHS
             self.wavelengths.sort()
         # EVE
-        self.ions.sort()
+        if self.eve_data is not None:
+            if self.ions is None:
+                self.ions = ALL_IONS
+            self.ions.sort()
         self.cadence = freq
         self.months = months
 
@@ -87,8 +92,22 @@ class SDOMLDataset(Dataset):
             self.aligndata.index.month.isin(self.months), :
         ]
 
+        # if data filter, apply
+        if min_date and max_date:
+            if min_date < pd.to_datetime(
+                "2010-09-09 00:00:11.08"
+            ) or max_date > pd.to_datetime("2023-05-26 06:36:08.072"):
+                raise ValueError("SDOML date range is not available. ")
+
+            self.aligndata = self.aligndata[
+                (self.aligndata.index >= min_date) & (self.aligndata.index <= max_date)
+            ]
+
         # number of frames to return per sample
         self.num_frames = num_frames
+        self.drop_frame_dim = drop_frame_dim  # for backwards compat
+        if self.drop_frame_dim:
+            assert self.num_frames == 1
 
     def __len__(self):
         # report slightly smaller such that all frame sets requested are available
@@ -105,7 +124,7 @@ class SDOMLDataset(Dataset):
 
         if self.eve_data is not None:
             eve_data = self.get_eve(idx)
-            return image_stack, eve_data
+            return image_stack, eve_data.reshape(-1)
         else:
             return image_stack
 
@@ -156,7 +175,7 @@ class SDOMLDataset(Dataset):
 
         aia_image = np.array(list(aia_image_dict.values()))
 
-        return aia_image
+        return aia_image[:, 0, :, :] if self.drop_frame_dim else aia_image
 
     def get_eve(self, idx):
         """Get EVE data for a given index.
@@ -205,7 +224,7 @@ class SDOMLDataset(Dataset):
 
         hmi_image = np.array(list(hmi_image_dict.values()))
 
-        return hmi_image
+        return hmi_image[:, 0, :, :] if self.drop_frame_dim else hmi_image
 
     def __str__(self):
         output = ""
@@ -246,6 +265,10 @@ class SDOMLDataModule(pl.LightningDataModule):
         holdout_months=[],
         cache_dir="",
         apply_mask=True,
+        num_frames=1,
+        drop_frame_dim=False,
+        min_date=None,
+        max_date=None,
     ):
 
         super().__init__()
@@ -261,6 +284,10 @@ class SDOMLDataModule(pl.LightningDataModule):
         self.test_months = test_months
         self.holdout_months = holdout_months
         self.cache_dir = cache_dir
+        self.num_frames = num_frames
+        self.drop_frame_dim = drop_frame_dim
+        self.min_date = pd.to_datetime(min_date) if min_date is not None else None
+        self.max_date = pd.to_datetime(max_date) if max_date is not None else None
         self.isAIA = True if self.aia_path is not None else False
         self.isHMI = True if self.hmi_path is not None else False
         self.isEVE = True if self.eve_path is not None else False
@@ -269,30 +296,30 @@ class SDOMLDataModule(pl.LightningDataModule):
         self.components = components
         self.wavelengths = wavelengths
         self.ions = ions
-        if self.components is None:
-            self.components = ALL_COMPONENTS
-        if self.wavelengths is None:
-            self.wavelengths = ALL_WAVELENGTHS
-        if self.ions is None:
-            self.ions = ALL_IONS
-
-        # checking if EVE is in the dataset
-        if self.isEVE:
-            self.eve_data = zarr.group(zarr.DirectoryStore(self.eve_path))
-        else:
-            self.eve_data = None
 
         # checking if AIA is in the dataset
         if self.isAIA:
             self.aia_data = zarr.group(zarr.DirectoryStore(self.aia_path))
+            if self.wavelengths is None:
+                self.wavelengths = ALL_WAVELENGTHS
         else:
             self.aia_data = None
 
-        # checking if AIA is in the dataset
+        # checking if HMI is in the dataset
         if self.isHMI:
             self.hmi_data = zarr.group(zarr.DirectoryStore(self.hmi_path))
+            if self.components is None:
+                self.components = ALL_COMPONENTS
         else:
             self.hmi_data = None
+
+        # checking if EVE is in the dataset
+        if self.isEVE:
+            self.eve_data = zarr.group(zarr.DirectoryStore(self.eve_path))
+            if self.ions is None:
+                self.ions = ALL_IONS
+        else:
+            self.eve_data = None
 
         self.train_months = [
             i
@@ -300,7 +327,7 @@ class SDOMLDataModule(pl.LightningDataModule):
             if i not in self.test_months + self.val_months + self.holdout_months
         ]
 
-        if self.isAIA or self.isHMI:
+        if not self.isEVE:
             self.training_years = [int(year) for year in self.aia_data.keys()]
         else:  # EVE included, limit to 2010-2014
             self.training_years = [
@@ -309,12 +336,13 @@ class SDOMLDataModule(pl.LightningDataModule):
 
         # Cache filenames
         ids = []
-        if self.isEVE:
-            if len(self.ions) == 39:
-                ions_id = "EVE_FULL"
-            else:
-                ions_id = "_".join(ions).replace(" ", "_")
-            ids.append(ions_id)
+
+        if self.isHMI:
+            if len(self.components) == 3:
+                component_id = "HMI_FULL"
+            elif len(self.components) > 0 and len(self.components) < 3:
+                component_id = "_".join(self.components)
+            ids.append(component_id)
 
         if self.isAIA:
             if len(self.wavelengths) == 9:
@@ -323,12 +351,12 @@ class SDOMLDataModule(pl.LightningDataModule):
                 wavelength_id = "_".join(self.wavelengths)
             ids.append(wavelength_id)
 
-        if self.isHMI:
-            if len(self.components) == 3:
-                component_id = "HMI_FULL"
-            elif len(self.components) > 0 and len(self.components) < 3:
-                component_id = "_".join(self.components)
-            ids.append(component_id)
+        if self.isEVE:
+            if len(self.ions) == 38:  # excluding Fe XVI_2
+                ions_id = "EVE_FULL"
+            else:
+                ions_id = "_".join(self.ions).replace(" ", "_")
+            ids.append(ions_id)
 
         self.cache_id = f"{'_'.join(ids)}_{self.cadence}"
 
@@ -368,6 +396,7 @@ class SDOMLDataModule(pl.LightningDataModule):
             aligndata["Time"] = pd.to_datetime(aligndata["Time"])
             aligndata.set_index("Time", inplace=True)
             return aligndata
+        print(f"No alignment cache found at {self.index_cache_filename}")
         print(f"\nData alignment calculation begin:")
         print("-" * 50)
 
@@ -515,7 +544,7 @@ class SDOMLDataModule(pl.LightningDataModule):
             print(f"Aligning EVE data")
             df_t_eve = pd.DataFrame(
                 {
-                    "Time": pd.to_datetime(self.eve_data["Time"][:]),
+                    "Time": pd.to_datetime(self.eve_data["Time"]),
                     "idx_eve": np.arange(0, len(self.eve_data["Time"])),
                 }
             )
@@ -530,9 +559,12 @@ class SDOMLDataModule(pl.LightningDataModule):
                 join_series = join_series.join(df_t_obs_eve, how="inner")
 
             # remove missing eve data (missing values are labeled with negative values)
+            ## this will remove all but 16 values if the partial year 2014 is included
             for ion in self.ions:
-                ion_data = self.eve_data[ion][:]
-                join_series = join_series.loc[ion_data[join_series["idx_eve"]] > 0, :]
+                if ion == "Fe XVI_2":
+                    continue
+                ion_data = self.eve_data[ion]
+                join_series = join_series.loc[ion_data[join_series["idx_eve"]] > 0]
 
         if join_series is None:
             raise ValueError("No data found for alignment.")
@@ -756,6 +788,10 @@ class SDOMLDataModule(pl.LightningDataModule):
             self.train_months,
             normalizations=self.normalizations,
             mask=self.hmi_mask.numpy(),
+            num_frames=self.num_frames,
+            drop_frame_dim=self.drop_frame_dim,
+            min_date=self.min_date,
+            max_date=self.max_date,
         )
 
         self.valid_ds = SDOMLDataset(
@@ -770,6 +806,10 @@ class SDOMLDataModule(pl.LightningDataModule):
             self.val_months,
             normalizations=self.normalizations,
             mask=self.hmi_mask.numpy(),
+            num_frames=self.num_frames,
+            drop_frame_dim=self.drop_frame_dim,
+            min_date=self.min_date,
+            max_date=self.max_date,
         )
 
         self.test_ds = SDOMLDataset(
@@ -784,6 +824,10 @@ class SDOMLDataModule(pl.LightningDataModule):
             self.test_months,
             normalizations=self.normalizations,
             mask=self.hmi_mask.numpy(),
+            num_frames=self.num_frames,
+            drop_frame_dim=self.drop_frame_dim,
+            min_date=self.min_date,
+            max_date=self.max_date,
         )
 
     def train_dataloader(self):
