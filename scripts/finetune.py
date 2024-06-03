@@ -121,12 +121,17 @@ class Finetuner(object):
 
                     d_output = len(self.data_module.ions)
 
+                    backbone_params = {}
+                    match cfg.experiment.backbone.model:
+                        case "mae":
+                            backbone_params["img_size"] = cfg.model.mae.img_size
+                            backbone_params["patch_size"] = cfg.model.mae.patch_size
+                            backbone_params["embed_dim"] = cfg.model.mae.embed_dim
+                            backbone_params["num_frames"] = cfg.model.mae.num_frames
+
                     self.model = self.model_class(
                         # backbone
-                        img_size=512,
-                        patch_size=16,
-                        embed_dim=128,
-                        num_frames=cfg.data.num_frames,
+                        **backbone_params,
                         # virtual eve params
                         **self.cfg.model.virtualeve,
                         d_output=d_output,
@@ -134,7 +139,7 @@ class Finetuner(object):
                             self.data_module.normalizations["EVE"]["eve_norm"],
                             dtype=np.float32,
                         ),
-                        # genreal
+                        # general
                         optimiser=self.cfg.model.opt.optimiser,
                         lr=self.cfg.model.opt.learning_rate,
                         weight_decay=self.cfg.model.opt.weight_decay,
@@ -168,10 +173,20 @@ class Finetuner(object):
 
             # download checkpoint
             try:
-                artifact = self.logger.use_artifact(
-                    checkpoint_reference
-                )  # , type="model")
-                artifact_dir = Path(artifact.download()) / "model.ckpt"
+                # check if already downloaded for this run, possible if mutliprocess spawned
+                potential_artifact_loc = glob.glob("artifacts/model-*/model.ckpt")
+                if len(potential_artifact_loc) == 1:
+                    print(
+                        "Found pre-downloaded checkpoint at", potential_artifact_loc[0]
+                    )
+                    artifact_dir = potential_artifact_loc[0]
+                else:
+                    artifact = self.logger.use_artifact(
+                        checkpoint_reference
+                    )  # , type="model")
+                    downloaded_location = artifact.download()
+                    print("W&B model found/downloaded at", downloaded_location)
+                    artifact_dir = Path(downloaded_location) / "model.ckpt"
             except wandb.errors.CommError:
                 print("W&B checkpoint not found, trying as direct path...")
                 artifact_dir = checkpoint_reference
@@ -198,7 +213,8 @@ class Finetuner(object):
                 logger=self.logger,
                 enable_checkpointing=True,
                 callbacks=self.callbacks,
-                # strategy="ddp",
+                log_every_n_steps=self.cfg.experiment.log_every_n_steps,
+                strategy=self.cfg.experiment.distributed.strategy,
             )
         else:
             self.trainer = pl.Trainer(
