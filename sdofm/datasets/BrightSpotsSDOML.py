@@ -30,20 +30,20 @@ class BrightSpotsSDOMLDataModule(SDOMLDataModule):
 
     def __init__(self, 
                  blosc_cache=None, 
-                 start_date=None,
-                 end_date=None,
+                #  start_date=None,
+                #  end_date=None,
                  *args, **kwargs):
         
         super().__init__(*args, **kwargs)        
         self.blosc_cache = blosc_cache
-        self.start_date = start_date
-        self.end_date = end_date
+        # self.start_date = start_date
+        # self.end_date = end_date
 
-        if start_date is not None:
-            self.aligndata = self.aligndata[self.start_date:]
+        # if start_date is not None:
+        #     self.aligndata = self.aligndata[self.start_date:]
 
-        if end_date is not None:
-            self.aligndata = self.aligndata[:self.end_date]
+        # if end_date is not None:
+        #     self.aligndata = self.aligndata[:self.end_date]
                 
     def setup(self, stage=None):
 

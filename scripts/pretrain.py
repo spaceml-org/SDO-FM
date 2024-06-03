@@ -11,8 +11,8 @@ import torch
 import wandb
 
 from sdofm import utils
-from sdofm.datasets import SDOMLDataModule
-from sdofm.pretraining import MAE, NVAE, SAMAE
+from sdofm.datasets import SDOMLDataModule, BrightSpotsSDOMLDataModule
+from sdofm.pretraining import MAE, NVAE, SAMAE, BrightSpots
 
 
 class Pretrainer(object):
@@ -111,6 +111,50 @@ class Pretrainer(object):
                     self.model = self.model_class(
                         **cfg.model.mae,
                         **cfg.model.samae,
+                        optimiser=cfg.model.opt.optimiser,
+                        lr=cfg.model.opt.learning_rate,
+                        weight_decay=cfg.model.opt.weight_decay,
+                    )
+
+            case "brightspots":
+                self.model_class = BrightSpots
+                self.data_module = BrightSpotsSDOMLDataModule(
+                    hmi_path=os.path.join(
+                        cfg.data.sdoml.base_directory, cfg.data.sdoml.sub_directory.hmi
+                    ),
+                    aia_path=os.path.join(
+                        cfg.data.sdoml.base_directory, cfg.data.sdoml.sub_directory.aia
+                    ),
+                    eve_path=None,
+                    components=cfg.data.sdoml.components,
+                    wavelengths=cfg.data.sdoml.wavelengths,
+                    ions=cfg.data.sdoml.ions,
+                    frequency=cfg.data.sdoml.frequency,
+                    batch_size=cfg.model.opt.batch_size,
+                    num_workers=cfg.data.num_workers,
+                    blosc_cache = "/home/walsh/blosc_cache",
+                    val_months=cfg.data.month_splits.val,
+                    test_months=cfg.data.month_splits.test,
+                    holdout_months=cfg.data.month_splits.holdout,
+                    cache_dir=os.path.join(
+                        cfg.data.sdoml.base_directory,
+                        cfg.data.sdoml.sub_directory.cache,
+                    ),
+                    min_date=cfg.data.min_date,
+                    max_date=cfg.data.max_date,
+                    num_frames=cfg.model.mae.num_frames,
+                )
+                self.data_module.setup()
+
+                if cfg.experiment.resuming or is_backbone:
+                    self.model = self.load_checkpoint(
+                        cfg.experiment.checkpoint
+                        if not is_backbone
+                        else cfg.experiment.backbone.checkpoint
+                    )
+                else:
+                    self.model = self.model_class(
+                        **cfg.model.brightspots,
                         optimiser=cfg.model.opt.optimiser,
                         lr=cfg.model.opt.learning_rate,
                         weight_decay=cfg.model.opt.weight_decay,
