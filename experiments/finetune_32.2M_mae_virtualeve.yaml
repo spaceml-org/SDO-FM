@@ -8,9 +8,9 @@ experiment:
   task: "finetune"              # options: train, evaluate (not implemented)
   model: "virtualeve"
   resuming: false
-  checkpoint: false              # this is the wandb run_id of the checkpoint to load
+  checkpoint: null              # this is the wandb run_id of the checkpoint to load
   backbone:
-    checkpoint: "fdlx/sdofm/model-tk45el88:best" #"mae128-epoch=17-step=139302.ckpt" #"sdofm/runs/771lx6o3:best"
+    checkpoint: "model-tk45el88:best" #"mae128-epoch=17-step=139302.ckpt" #"sdofm/runs/771lx6o3:best" Only use models inside project, it will fail path otherwise
     model: "mae"
   seed: 0
   disable_cuda: false
@@ -37,6 +37,8 @@ experiment:
   distributed:
     enabled: true               # set to true to use more than one device
     world_size: "auto"          # The "auto" option recognizes the machine you are on, and selects the appropriate number of accelerators.
+    strategy: "ddp_find_unused_parameters_true"
+  log_every_n_steps: 5
 
 # dataset configuration
 data:
@@ -73,7 +75,7 @@ model:
     num_frames: 1
     tubelet_size: 1
     in_chans: 9
-    embed_dim: 256
+    embed_dim: 512
     depth: 24
     num_heads: 16
     decoder_embed_dim: 512
@@ -131,18 +133,18 @@ model:
     lr_linear: 0.01
     lr_cnn: 0.0001
     cnn_dp: 0.75
-    epochs_linear: 50
+    epochs_linear: 20
     
   # ML optimization arguments:
   opt:
     loss: "mse" # options: "mae", "mse", "mape"
     scheduler: "constant" #other options: "cosine", "plateau", "exp"
     scheduler_warmup: 0
-    batch_size: 5
+    batch_size: 16
     learning_rate: 0.0001
     weight_decay: 3e-4 # 0.0
     optimiser: "adam"
-    epochs: 100
+    epochs: 50
     patience: 2
 
 # hydra configuration
