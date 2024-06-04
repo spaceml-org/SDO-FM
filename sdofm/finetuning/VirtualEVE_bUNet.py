@@ -16,7 +16,7 @@ from ..models import (
 )
 
 
-class VirtualEVE(BaseModule):
+class VirtualEVE_bUNet(BaseModule):
 
     def __init__(
         self,

@@ -39,6 +39,6 @@ class BrightSpots(BaseModule):
     def validation_step(self, batch, batch_idx):
         image_stack, bright_spots = batch['image_stack'], batch['bright_spots']
         x_hat = self.model.forward(image_stack).repeat_interleave(self.n_channels, 1)
-        loss = torch.sqrt(F.mse_loss(x_hat, bright_spots), sync_dist=True)
-        self.log("val_loss", loss)
+        loss = torch.sqrt(F.mse_loss(x_hat, bright_spots))
+        self.log("val_loss", loss, sync_dist=True)
 
