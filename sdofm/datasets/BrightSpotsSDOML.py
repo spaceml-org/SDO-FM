@@ -111,6 +111,9 @@ class BrightSpotsSDOMLDataset(SDOMLDataset):
         """Get AIA image for a given index.
         Returns a numpy array of shape (num_wavelengths, num_frames, height, width).
         """
+        if self.blosc_cache is None: # we don't want to use the cache on TPUs (Google caches from NFS)
+            return super().get_aia_image(idx)
+
         aia_image = np.r_[[io.load_aia(self.blosc_cache, self.aia_data, idx_row_element, self.wavelengths) \
                            for _,idx_row_element in aligned_samples.iterrows()]]
                     
@@ -129,6 +132,9 @@ class BrightSpotsSDOMLDataset(SDOMLDataset):
         """Get EVE data for a given index.
         Returns a numpy array of shape (num_ions, num_frames, ...).
         """
+        if self.blosc_cache is None: # we don't want to use the cache on TPUs (Google caches from NFS)
+            return super().get_eve(idx)
+
         eve_ion_dict = {}
         for ion in self.ions:
             eve_ion_dict[ion] = []                
@@ -148,6 +154,9 @@ class BrightSpotsSDOMLDataset(SDOMLDataset):
         """Get HMI image for a given index.
         Returns a numpy array of shape (num_channels, num_frames, height, width).
         """
+        if self.blosc_cache is None: # we don't want to use the cache on TPUs (Google caches from NFS)
+            return super().get_hmi_image(idx)
+
         hmi_image = np.r_[[io.load_hmi(self.blosc_cache, self.hmi_data, idx_row_element, self.components) \
                            for _,idx_row_element in aligned_samples.iterrows()]]
                     

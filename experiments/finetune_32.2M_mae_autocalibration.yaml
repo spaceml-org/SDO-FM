@@ -22,22 +22,22 @@ experiment:
     tags: []
     notes: ""
     output_directory: "wandb_output"
-    log_model: True             # can be True (final checkpoint), False (no checkpointing), or "all" (for all epoches)
+    log_model: "all"             # can be True (final checkpoint), False (no checkpointing), or "all" (for all epoches)
   gcp_storage:                  # this will checkpoint all epoches and upload them to a GCP bucket, W&B will store references (TODO: perhaps explain this better)
     enabled: true
     bucket: "sdofm-checkpoints"
   fold: null
   evaluate: false               # skip training and only evaluate (requires checkpoint to be set)
   device: null                  # this is set automatically using the disable_cuda flag and torch.cuda.is_available()
-  precision: '32'        # (32, 64) for cuda, ('32-true', '16-true', 'bf16-true') for tpu
+  precision: 'bf16-true'        # (32, 64) for cuda, ('32-true', '16-true', 'bf16-true') for tpu
   log_n_batches: 1000           # log every n training batches
   save_results: true            # save full results to file and wandb
-  accelerator: "gpu"           # options are "auto", "gpu", "tpu", "ipu", or "cpu"
+  accelerator: "auto"           # options are "auto", "gpu", "tpu", "ipu", or "cpu"
   profiler: null                # options are 'XLAProfiler' (TPU), 'PyTorchProfiler', warning: PyTorchProfiler only works on cpu/gpu according to docs
   distributed:
     enabled: true               # set to true to use more than one device
-    world_size: [2,3]          # The "auto" option recognizes the machine you are on, and selects the appropriate number of accelerators.
-    strategy: "ddp"
+    world_size: "auto"          # The "auto" option recognizes the machine you are on, and selects the appropriate number of accelerators.
+    strategy: "auto"
   log_every_n_steps: 5
 
 # dataset configuration
@@ -123,7 +123,7 @@ model:
   # FINE-TUNERS
   autocalibration:
     num_neck_filters: 32
-    output_dim: 1 # not sure why this is implemented for autocorrelation, should be a scalar
+    output_dim: 9 # not sure why this is implemented for autocorrelation, should be a scalar
     loss: "mse" # options: "mse", "heteroscedastic"
     freeze_encoder: true
     

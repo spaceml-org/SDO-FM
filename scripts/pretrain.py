@@ -132,7 +132,7 @@ class Pretrainer(object):
                     frequency=cfg.data.sdoml.frequency,
                     batch_size=cfg.model.opt.batch_size,
                     num_workers=cfg.data.num_workers,
-                    blosc_cache = "/home/walsh/blosc_cache",
+                    blosc_cache = None, # "/home/walsh/blosc_cache", # disable for TPUs
                     val_months=cfg.data.month_splits.val,
                     test_months=cfg.data.month_splits.test,
                     holdout_months=cfg.data.month_splits.holdout,
@@ -142,7 +142,7 @@ class Pretrainer(object):
                     ),
                     min_date=cfg.data.min_date,
                     max_date=cfg.data.max_date,
-                    num_frames=cfg.model.mae.num_frames,
+                    num_frames=cfg.data.num_frames,
                 )
                 self.data_module.setup()
 
