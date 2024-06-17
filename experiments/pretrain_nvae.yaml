@@ -1,14 +1,13 @@
 # default.yaml
 
-# MODEL SUMMARY
-#   | Name        | Type                   | Params
-# -------------------------------------------------------
-# 0 | autoencoder | MaskedAutoencoderViT3D | 333 M 
-# -------------------------------------------------------
-# 329 M     Trainable params
-# 4.7 M     Non-trainable params
-# 333 M     Total params
-# 1,335.838 Total estimated model params size (MB)
+#   | Name        | Type        | Params | Mode 
+# ----------------------------------------------------
+# 0 | autoencoder | AutoEncoder | 21.4 M | train
+# ----------------------------------------------------
+# 21.4 M    Trainable params
+# 2.5 K     Non-trainable params
+# 21.4 M    Total params
+# 85.652    Total estimated model params size (MB)
 
 # general
 log_level: 'DEBUG'
@@ -41,7 +40,7 @@ experiment:
   log_n_batches: 1000 # log every n training batches
   save_results: true  # save full results to file and wandb
   accelerator: "auto"  # options are "auto", "gpu", "tpu", "ipu", or "cpu"
-  profiler: null #'XLAProfiler' # 'XLAProfiler' # options are XLAProfiler/PyTorchProfiler Warning: XLA for TPUs only works on single world size
+  profiler: 'XLAProfiler' # 'XLAProfiler' # options are XLAProfiler/PyTorchProfiler Warning: XLA for TPUs only works on single world size
   distributed:
     enabled: true
     world_size: 1 # The "auto" option recognizes the machine you are on, and selects the appropriate number of accelerators.
@@ -60,6 +59,7 @@ data:
   num_workers: 16    # set appropriately for your machine
   prefetch_factor: 3
   num_frames: 1 # WARNING: This is only read for FINETUNING, model num_frames overrides in BACKBONE
+  drop_frame_dim: True
   # output_directory: "wandb_output"
   sdoml:
     base_directory: "/mnt/sdoml"

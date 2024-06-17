@@ -188,6 +188,8 @@ class Pretrainer(object):
                     ),
                     min_date=cfg.data.min_date,
                     max_date=cfg.data.max_date,
+                    num_frames=cfg.data.num_frames,
+                    drop_frame_dim=cfg.data.num_frames,
                 )
 
                 if cfg.experiment.resuming or is_backbone:

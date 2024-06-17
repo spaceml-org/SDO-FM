@@ -1,5 +1,3 @@
-# Adapted from: https://github.com/NVlabs/NVAE/blob/master/model.py
-
 # ---------------------------------------------------------------
 # Copyright (c) 2020, NVIDIA CORPORATION. All rights reserved.
 #
@@ -7,44 +5,34 @@
 # for NVAE. To view a copy of this license, see the LICENSE file.
 # ---------------------------------------------------------------
 
-import time
 
+import time
 import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from neural_operations import (
+    OPS,
+    EncCombinerCell,
+    DecCombinerCell,
+    Conv2D,
+    get_skip_connection,
+    SE,
+)
+from neural_ar_operations import (
+    ARConv2d,
+    ARInvertedResidual,
+    MixLogCDFParam,
+    mix_log_cdf_flow,
+)
+from neural_ar_operations import ELUConv as ARELUConv
 from torch.distributions.bernoulli import Bernoulli
 
-from .distributions import DiscMixLogistic, Normal, NormalDecoder
-from .neural_ar_operations import ARConv2d, ARInvertedResidual
-from .neural_ar_operations import ELUConv as ARELUConv
-from .neural_ar_operations import MixLogCDFParam, mix_log_cdf_flow
-from .neural_operations import (
-    OPS,
-    SE,
-    Conv2D,
-    DecCombinerCell,
-    EncCombinerCell,
-    get_skip_connection,
-)
-from .thirdparty.inplaced_sync_batchnorm import SyncBatchNormSwish
-from .utils import get_input_size, get_stride_for_cell_type, groups_per_scale
+from utils import get_stride_for_cell_type, get_input_size, groups_per_scale
+from distributions import Normal, DiscMixLogistic, NormalDecoder
+from thirdparty.inplaced_sync_batchnorm import SyncBatchNormSwish
 
 CHANNEL_MULT = 2
-
-
-def pack_latents(zs):
-    z_shapes = [z.shape[1:] for z in zs]
-    z = torch.cat([z.flatten(1) for z in zs], dim=1)
-    return z, z_shapes
-
-
-def unpack_latents(z, z_shapes):
-    batch_size = z.shape[0]
-    z_chunks = [np.prod(z_shape) for z_shape in z_shapes]
-    zs = torch.split(z, z_chunks, dim=1)
-    zs = [z[0].view(torch.Size([batch_size]) + z[1]) for z in zip(zs, z_shapes)]
-    return zs
 
 
 class Cell(nn.Module):
@@ -139,8 +127,7 @@ class PairedCellAR(nn.Module):
 
 class AutoEncoder(nn.Module):
     def __init__(self, args, writer, arch_instance):
-        super().__init__()
-        # self.device = args.device
+        super(AutoEncoder, self).__init__()
         self.writer = writer
         self.arch_instance = arch_instance
         self.dataset = args.dataset
@@ -267,8 +254,8 @@ class AutoEncoder(nn.Module):
             ):
                 self.all_bn_layers.append(layer)
 
-        # print('len log norm:', len(self.all_log_norm))
-        # print('len bn:', len(self.all_bn_layers))
+        print("len log norm:", len(self.all_log_norm))
+        print("len bn:", len(self.all_bn_layers))
         # left/right singular vectors used for SR
         self.sr_u = {}
         self.sr_v = {}
@@ -276,12 +263,7 @@ class AutoEncoder(nn.Module):
 
     def init_stem(self):
         Cout = self.num_channels_enc
-        if self.dataset in {"mnist", "omniglot"}:
-            Cin = 1
-        elif self.dataset == "sdoml":
-            Cin = 12
-        else:
-            Cin = 3
+        Cin = 1 if self.dataset in {"mnist", "omniglot"} else 3
         stem = Conv2D(Cin, Cout, 3, padding=1, bias=True)
         return stem
 
@@ -482,121 +464,12 @@ class AutoEncoder(nn.Module):
         C_in = int(self.num_channels_dec * mult)
         if self.dataset in {"mnist", "omniglot"}:
             C_out = 1
-        elif self.dataset == "sdoml" and self.num_mix_output == 1:
-            C_out = 2 * 12
         else:
             if self.num_mix_output == 1:
                 C_out = 2 * 3
             else:
                 C_out = 10 * self.num_mix_output
         return nn.Sequential(nn.ELU(), Conv2D(C_in, C_out, 3, padding=1, bias=True))
-
-    def encode(self, x):
-        s = self.stem(2 * x - 1.0)
-
-        # perform pre-processing
-        for cell in self.pre_process:
-            s = cell(s)
-        zs = []
-
-        # run the main encoder tower
-        combiner_cells_enc = []
-        combiner_cells_s = []
-        for cell in self.enc_tower:
-            if cell.cell_type == "combiner_enc":
-                combiner_cells_enc.append(cell)
-                combiner_cells_s.append(s)
-            else:
-                s = cell(s)
-
-        # reverse combiner cells and their input for decoder
-        combiner_cells_enc.reverse()
-        combiner_cells_s.reverse()
-
-        idx_dec = 0
-        ftr = self.enc0(s)  # this reduces the channel dimension
-        param0 = self.enc_sampler[idx_dec](ftr)
-        mu_q, log_sig_q = torch.chunk(param0, 2, dim=1)
-        dist = Normal(mu_q, log_sig_q)  # for the first approx. posterior
-        z, _ = dist.sample()
-
-        # apply normalizing flows
-        nf_offset = 0
-        for n in range(self.num_flows):
-            z, _ = self.nf_cells[n](z, ftr)
-        nf_offset += self.num_flows
-
-        # To make sure we do not pass any deterministic features from x to decoder.
-        s = 0
-
-        # prior for z0
-        dist = Normal(mu=torch.zeros_like(z), log_sigma=torch.zeros_like(z))
-
-        idx_dec = 0
-        s = self.prior_ftr0.unsqueeze(0)  # Corresponds to h in Figure 2 of paper
-        batch_size = z.size(0)
-        s = s.expand(batch_size, -1, -1, -1)
-
-        for cell in self.dec_tower:
-            if cell.cell_type == "combiner_dec":
-                if idx_dec > 0:
-                    # form prior
-                    param = self.dec_sampler[idx_dec - 1](s)
-                    mu_p, log_sig_p = torch.chunk(param, 2, dim=1)
-
-                    # form encoder
-                    ftr = combiner_cells_enc[idx_dec - 1](
-                        combiner_cells_s[idx_dec - 1], s
-                    )
-                    param = self.enc_sampler[idx_dec](ftr)
-                    mu_q, log_sig_q = torch.chunk(param, 2, dim=1)
-                    dist = (
-                        Normal(mu_p + mu_q, log_sig_p + log_sig_q)
-                        if self.res_dist
-                        else Normal(mu_q, log_sig_q)
-                    )
-                    z, _ = dist.sample()
-                    # apply NF
-                    for n in range(self.num_flows):
-                        z, _ = self.nf_cells[nf_offset + n](z, ftr)
-                    nf_offset += self.num_flows
-
-                zs.append(z)
-                # 'combiner_dec'
-                s = cell(s, z)
-                idx_dec += 1
-            else:
-                s = cell(s)
-
-        z, z_shapes = pack_latents(zs)
-        return z, z_shapes
-
-    def decode(self, z, z_shapes):
-        zs = unpack_latents(z, z_shapes)
-
-        idx_dec = 0
-        s = self.prior_ftr0.unsqueeze(0)
-        batch_size = z.size(0)
-        s = s.expand(batch_size, -1, -1, -1)
-
-        for cell in self.dec_tower:
-            if cell.cell_type == "combiner_dec":
-                z = zs[idx_dec]
-
-                # 'combiner_dec'
-                s = cell(s, z)
-                idx_dec += 1
-            else:
-                s = cell(s)
-
-        if self.vanilla_vae:
-            s = self.stem_decoder(z)
-
-        for cell in self.post_process:
-            s = cell(s)
-
-        logits = self.image_conditional(s)
-        return logits
 
     def forward(self, x):
         s = self.stem(2 * x - 1.0)
@@ -625,7 +498,6 @@ class AutoEncoder(nn.Module):
         mu_q, log_sig_q = torch.chunk(param0, 2, dim=1)
         dist = Normal(mu_q, log_sig_q)  # for the first approx. posterior
         z, _ = dist.sample()
-        # print(z.shape, z[0].nelement())
         log_q_conv = dist.log_p(z)
 
         # apply normalizing flows
@@ -647,7 +519,7 @@ class AutoEncoder(nn.Module):
         all_log_p = [log_p_conv]
 
         idx_dec = 0
-        s = self.prior_ftr0.unsqueeze(0)  # Corresponds to h in Figure 2 of paper
+        s = self.prior_ftr0.unsqueeze(0)
         batch_size = z.size(0)
         s = s.expand(batch_size, -1, -1, -1)
         for cell in self.dec_tower:
@@ -669,7 +541,6 @@ class AutoEncoder(nn.Module):
                         else Normal(mu_q, log_sig_q)
                     )
                     z, _ = dist.sample()
-                    # print(z.shape, z[0].nelement())
                     log_q_conv = dist.log_p(z)
                     # apply NF
                     for n in range(self.num_flows):
@@ -719,14 +590,15 @@ class AutoEncoder(nn.Module):
     def sample(self, num_samples, t):
         scale_ind = 0
         z0_size = [num_samples] + self.z0_size
-        device = next(self.parameters()) #.device
-        mu = torch.zeros(z0_size).to(device)
-        log_sigma = torch.zeros(z0_size).to(device)
-        dist = Normal(mu=mu, log_sigma=log_sigma, temp=t)
+        dist = Normal(
+            mu=torch.zeros(z0_size).cuda(),
+            log_sigma=torch.zeros(z0_size).cuda(),
+            temp=t,
+        )
         z, _ = dist.sample()
 
         idx_dec = 0
-        s = self.prior_ftr0.unsqueeze(0)  # Corresponds to h in Figure 2 of paper
+        s = self.prior_ftr0.unsqueeze(0)
         batch_size = z.size(0)
         s = s.expand(batch_size, -1, -1, -1)
         for cell in self.dec_tower:
@@ -770,7 +642,6 @@ class AutoEncoder(nn.Module):
             "lsun_bedroom_256",
             "lsun_church_64",
             "lsun_church_128",
-            "sdoml",
         }:
             if self.num_mix_output == 1:
                 return NormalDecoder(logits, num_bits=self.num_bits)
@@ -802,10 +673,10 @@ class AutoEncoder(nn.Module):
                 if i not in self.sr_u:
                     num_w, row, col = weights[i].shape
                     self.sr_u[i] = F.normalize(
-                        torch.ones(num_w, row).normal_(0, 1).to(weights[i]), dim=1, eps=1e-3
+                        torch.ones(num_w, row).normal_(0, 1).cuda(), dim=1, eps=1e-3
                     )
                     self.sr_v[i] = F.normalize(
-                        torch.ones(num_w, col).normal_(0, 1).to(weights[i]), dim=1, eps=1e-3
+                        torch.ones(num_w, col).normal_(0, 1).cuda(), dim=1, eps=1e-3
                     )
                     # increase the number of iterations for the first time
                     num_iter = 10 * self.num_power_iter
