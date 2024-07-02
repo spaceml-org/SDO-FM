@@ -407,7 +407,6 @@ class SolarAwareMaskedAutoencoderViT3D(nn.Module):
         # embed patches
         x = self.patch_embed(x)
         # print("patch_embed dim", x.shape)
-        import numpy as np
 
         # np.save("patch_embed.npy", x.cpu().detach().numpy())
         # add pos embed w/o cls token

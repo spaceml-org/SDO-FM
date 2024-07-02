@@ -3,7 +3,7 @@
 # general
 log_level: 'DEBUG'
 experiment:
-  name: "ablation-virtualeve"   # generate random name in wandb when set to null
+  name: "virtualeve-ablation"   # generate random name in wandb when set to null
   project: "sdofm"
   task: "ablation"              # pretrain/finetune/ablation
   model: "virtualeve"
@@ -15,14 +15,14 @@ experiment:
   seed: 0
   disable_cuda: false
   wandb:
-    enable: false
+    enable: true
     entity: "fdlx"
     group: "sdofm-phase1"
     job_type: "ablation"
     tags: []
     notes: ""
     output_directory: "wandb_output"
-    log_model: True             # can be True (final checkpoint), False (no checkpointing), or "all" (for all epoches)
+    log_model: "all"             # can be True (final checkpoint), False (no checkpointing), or "all" (for all epoches)
   gcp_storage:                  # this will checkpoint all epoches and upload them to a GCP bucket, W&B will store references (TODO: perhaps explain this better)
     enabled: true
     bucket: "sdofm-checkpoints"
@@ -36,18 +36,21 @@ experiment:
   profiler: null                # options are 'XLAProfiler' (TPU), 'PyTorchProfiler', warning: PyTorchProfiler only works on cpu/gpu according to docs
   distributed:
     enabled: true               # set to true to use more than one device
-    world_size: 2               # The "auto" option recognizes the machine you are on, and selects the appropriate number of accelerators.
+    world_size: "auto"               # The "auto" option recognizes the machine you are on, and selects the appropriate number of accelerators.
+    strategy: "auto"
 
 # dataset configuration
 data:
-  min_date: '2010-09-09 00:00:11.08'    # minimum is '2010-09-09 00:00:11.08'
-  max_date: '2014-05-25 00:00:00.00'    # maximum is '2023-05-26 06:36:08.072'
+  # min_date: '2010-09-09 00:00:11.08'    # minimum is '2010-09-09 00:00:11.08'
+  # max_date: '2014-05-25 00:00:00.00'    # maximum is '2023-05-26 06:36:08.072'
+  min_date: '2011-10-01 00:00:00.00'    # minimum is '2010-09-09 00:00:11.08'
+  max_date: '2011-12-31 23:59:59.99'    # maximum is '2023-05-26 06:36:08.072'
   month_splits:                 # non selected months will form training set 
     # train: [1,2,3,4,5,6,7,8,9,10]
     val: [11]
     test: [12]
     holdout: []
-  num_workers: 4                 # set appropriately for your machine
+  num_workers: 32                 # set appropriately for your machine
   prefetch_factor: 3             # [Not implemented] 2 is default
   num_frames: 1                  # WARNING: This is only read for FINETUNING, model num_frames overrides in BACKBONE
   drop_frame_dim: True           # Requires num_frames=1, for backwards compatibility
@@ -129,18 +132,18 @@ model:
     lr_linear: 0.01
     lr_cnn: 0.0001
     cnn_dp: 0.75
-    epochs_linear: 50 # total will still be opt.epochs, cnn will train opt.epochs - (this value) 
+    epochs_linear: 20 # total will still be opt.epochs, cnn will train opt.epochs - (this value) 
     
   # ML optimization arguments:
   opt:
     loss: "mse" # options: "mae", "mse", "mape"
     scheduler: "constant" #other options: "cosine", "plateau", "exp"
     scheduler_warmup: 0
-    batch_size: 1
+    batch_size: 16
     learning_rate: 0.0001
     weight_decay: 3e-4 # 0.0
     optimiser: "adam"
-    epochs: 100
+    epochs: 50
     patience: 2
 
 # hydra configuration

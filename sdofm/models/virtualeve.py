@@ -14,7 +14,7 @@ def unnormalize(y, eve_norm):
     eve_norm = torch.tensor(eve_norm).float()
     norm_mean = eve_norm[0]
     norm_stdev = eve_norm[1]
-    y = y * norm_stdev[None].to(y) + norm_mean[None].to(y)
+    y = y * norm_stdev[None] + norm_mean[None]  # .to(y) .to(y)
     return y
 
 
@@ -22,7 +22,7 @@ class CNNIrradianceModel(BaseModule):
 
     def __init__(self, d_input, d_output, eve_norm, model="efficientnet_b0", dp=0.75):
         super().__init__()
-        self.eve_norm = eve_norm
+        # self.eve_norm = eve_norm
 
         if True:
             if model == "efficientnet_b0":
@@ -75,7 +75,7 @@ class LinearIrradianceModel(BaseModule):
 
     def __init__(self, d_input, d_output, eve_norm):
         super().__init__()
-        self.eve_norm = eve_norm
+        # self.eve_norm = eve_norm
         self.n_channels = d_input
         self.outSize = d_output
 
@@ -107,7 +107,8 @@ class HybridIrradianceModel(BaseModule):
     ):
 
         super().__init__(*args, **kwargs)
-        self.eve_norm = eve_norm
+        # self.eve_norm = torch.Tensor(self.eve_norm).float() #eve_norm
+        self.register_buffer("eve_norm", torch.Tensor(eve_norm).float())
         self.n_channels = d_input
         self.outSize = d_output
         # self.ln_params = ln_params # unused
@@ -128,10 +129,10 @@ class HybridIrradianceModel(BaseModule):
         return self.unnormalize(self.forward(x))
 
     def unnormalize(self, y):
-        eve_norm = torch.tensor(self.eve_norm).float()
-        norm_mean = eve_norm[0]
-        norm_stdev = eve_norm[1]
-        y = y * norm_stdev[None].to(y) + norm_mean[None].to(y)
+        # eve_norm = torch.tensor(self.eve_norm).float()
+        norm_mean = self.eve_norm[0]
+        norm_stdev = self.eve_norm[1]
+        y = y * norm_stdev[None] + norm_mean[None]  # .to(y) .to(y)
         return y
 
     def training_step(self, batch, batch_nb):
@@ -139,38 +140,17 @@ class HybridIrradianceModel(BaseModule):
         y_pred = self.forward(x)
         loss = self.loss_func(y_pred, y)
 
+        # print("t: trying un")
         y = self.unnormalize(y)
         y_pred = self.unnormalize(y_pred)
+        # print("t: success un")
 
         epsilon = sys.float_info.epsilon
         # computing relative absolute error
         rae = torch.abs((y - y_pred) / (torch.abs(y) + epsilon)) * 100
+        av_rae = rae.mean()
 
-        # Logging
-        self.log(
-            "train_loss",
-            loss,
-            on_epoch=True,
-            prog_bar=True,
-            logger=True,
-            sync_dist=True,
-        )
-        self.log(
-            "train_RAE",
-            rae.mean(),
-            on_epoch=True,
-            prog_bar=True,
-            logger=True,
-            sync_dist=True,
-        )
-        self.log(
-            "train_lambda_cnn",
-            float(self.cnn_lambda),
-            on_epoch=True,
-            prog_bar=True,
-            logger=True,
-            sync_dist=True,
-        )
+        self.log_everything("train", loss, av_rae, float(self.cnn_lambda))
         return loss
 
     def validation_step(self, batch, batch_nb):
@@ -196,52 +176,8 @@ class HybridIrradianceModel(BaseModule):
         # compute mean absolute error
         mae = torch.abs(y - y_pred).mean()
 
-        # Logging
-        self.log(
-            "valid_loss",
-            loss,
-            on_epoch=True,
-            prog_bar=True,
-            logger=True,
-            sync_dist=True,
-        )
-        self.log(
-            "valid_MAE", mae, on_epoch=True, prog_bar=True, logger=True, sync_dist=True
-        )
-        self.log(
-            "valid_RAE",
-            av_rae,
-            on_epoch=True,
-            prog_bar=True,
-            logger=True,
-            sync_dist=True,
-        )
-        [
-            self.log(
-                f"valid_RAE_{i}",
-                err,
-                on_epoch=True,
-                prog_bar=True,
-                logger=True,
-                sync_dist=True,
-            )
-            for i, err in enumerate(av_rae_wl)
-        ]
-        self.log(
-            "valid_correlation_coefficient",
-            cc,
-            on_epoch=True,
-            prog_bar=True,
-            logger=True,
-            sync_dist=True,
-        )
-        self.log(
-            "valid_lambda_cnn",
-            float(self.cnn_lambda),
-            on_epoch=True,
-            prog_bar=True,
-            logger=True,
-            sync_dist=True,
+        self.log_everything(
+            "val", loss, av_rae, float(self.cnn_lambda), av_rae_wl, mae, cc
         )
 
         return loss
@@ -268,46 +204,76 @@ class HybridIrradianceModel(BaseModule):
         # mean absolute error
         mae = torch.abs(y - y_pred).mean()
 
-        self.log(
-            "valid_loss",
-            loss,
-            on_epoch=True,
-            prog_bar=True,
-            logger=True,
-            sync_dist=True,
-        )
-        self.log(
-            "valid_MAE", mae, on_epoch=True, prog_bar=True, logger=True, sync_dist=True
-        )
-        self.log(
-            "valid_RAE",
-            av_rae,
-            on_epoch=True,
-            prog_bar=True,
-            logger=True,
-            sync_dist=True,
-        )
-        [
-            self.log(
-                f"valid_RAE_{i}",
-                err,
-                on_epoch=True,
-                prog_bar=True,
-                logger=True,
-                sync_dist=True,
-            )
-            for i, err in enumerate(av_rae_wl)
-        ]
-        self.log(
-            "valid_correlation_coefficient",
-            cc,
-            on_epoch=True,
-            prog_bar=True,
-            logger=True,
-            sync_dist=True,
+        self.log_everything(
+            "test", loss, av_rae, float(self.cnn_lambda), av_rae_wl, mae, cc
         )
 
         return loss
+
+    def log_everything(
+        self, mode, loss, av_rae, train_lambda_cnn, av_rae_wl=None, mae=None, cc=None
+    ):
+        # the .to() calls are a fix for https://github.com/Lightning-AI/pytorch-lightning/issues/18803
+
+        self.log(
+            f"{mode}_loss",
+            loss,
+            # on_epoch=True,
+            prog_bar=True,
+            # logger=True,
+            # sync_dist=True,
+        )
+        self.log(
+            f"{mode}_RAE",
+            av_rae,
+            # on_epoch=True,
+            # logger=True,
+            # sync_dist=True,
+        )
+        # self.log(
+        #         f"{mode}_lambda_cnn",
+        #         self.cnn_lambda,
+        #         on_epoch=True,
+        #         logger=True,
+        #         sync_dist=True,
+        #     )
+        if mode != "train":
+            pass
+            # self.log(
+            #     f"{mode}_MAE",
+            #     mae,
+            #     on_epoch=True,
+            #     # prog_bar=True,
+            #     logger=True,
+            #     sync_dist=True
+            # )
+            # self.log(
+            #     f"{mode}_RAE",
+            #     av_rae,
+            #     on_epoch=True,
+            #     # prog_bar=True,
+            #     logger=True,
+            #     sync_dist=True,
+            # )
+            # [
+            #     self.log(
+            #         f"{mode}_RAE_{i}",
+            #         err,
+            #         on_epoch=True,
+            #         # prog_bar=True,
+            #         logger=True,
+            #         sync_dist=True,
+            #     )
+            #     for i, err in enumerate(av_rae_wl)
+            # ]
+            # self.log(
+            #     f"{mode}_correlation_coefficient",
+            #     cc,
+            #     on_epoch=True,
+            #     # prog_bar=True,
+            #     logger=True,
+            #     sync_dist=True,
+            # )
 
     def configure_optimizers(self):
         return torch.optim.Adam(

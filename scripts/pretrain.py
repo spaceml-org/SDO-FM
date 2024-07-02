@@ -2,6 +2,7 @@
 
 import os
 from pathlib import Path
+import glob
 
 import lightning.pytorch as pl
 from lightning.fabric.strategies import XLAFSDPStrategy
@@ -170,10 +171,20 @@ class Pretrainer(object):
 
             # download checkpoint
             try:
-                artifact = self.logger.use_artifact(
-                    checkpoint_reference
-                )  # , type="model")
-                artifact_dir = Path(artifact.download()) / "model.ckpt"
+                # check if already downloaded for this run, possible if mutliprocess spawned
+                potential_artifact_loc = glob.glob("artifacts/model-*/model.ckpt")
+                if len(potential_artifact_loc) == 1:
+                    print(
+                        "Found pre-downloaded checkpoint at", potential_artifact_loc[0]
+                    )
+                    artifact_dir = potential_artifact_loc[0]
+                else:
+                    artifact = self.logger.use_artifact(
+                        checkpoint_reference
+                    )  # , type="model")
+                    downloaded_location = artifact.download()
+                    print("W&B model found/downloaded at", downloaded_location)
+                    artifact_dir = Path(downloaded_location) / "model.ckpt"
             except (wandb.errors.CommError, AttributeError) as e:
                 print("W&B checkpoint not found, trying as direct path...")
                 artifact_dir = checkpoint_reference
@@ -199,6 +210,7 @@ class Pretrainer(object):
                 profiler=self.profiler,
                 logger=self.logger,
                 enable_checkpointing=True,
+                log_every_n_steps=self.cfg.experiment.log_every_n_steps,
             )
         else:
             trainer = pl.Trainer(

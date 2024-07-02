@@ -192,7 +192,7 @@ class Ablation(object):
         print("\nRUNNING MODEL FOR ABLATION STUDY...\n")
 
         if self.cfg.experiment.distributed:
-            trainer = pl.Trainer(
+            self.trainer = pl.Trainer(
                 devices=self.cfg.experiment.distributed.world_size,
                 accelerator=self.cfg.experiment.accelerator,
                 max_epochs=self.cfg.model.opt.epochs,
@@ -201,17 +201,17 @@ class Ablation(object):
                 logger=self.logger,
                 enable_checkpointing=True,
                 callbacks=self.callbacks,
-                strategy="ddp",
-                log_every_n_steps=30,
+                strategy=self.cfg.experiment.distributed.strategy,
+                log_every_n_steps=10,
             )
         else:
-            trainer = pl.Trainer(
+            self.trainer = pl.Trainer(
                 accelerator=self.cfg.experiment.accelerator,
                 max_epochs=self.cfg.model.opt.epochs,
                 logger=self.logger,
             )
-        trainer.fit(model=self.model, datamodule=self.data_module)
-        return trainer
+        self.trainer.fit(model=self.model, datamodule=self.data_module)
+        return self.trainer
 
     def evaluate(self):
         self.trainer.evaluate()
