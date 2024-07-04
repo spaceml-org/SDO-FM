@@ -3,3 +3,4 @@ from .SDOML import SDOMLDataModule
 from .SynopticSDOML import SynopticSDOMLDataModule
 from .BrightSpotsSDOML import BrightSpotsSDOMLDataModule
 from .RandomIntervalSDOML import RandomIntervalSDOMLDataModule
+from .TimestampedSDOML import TimestampedSDOMLDataModule
