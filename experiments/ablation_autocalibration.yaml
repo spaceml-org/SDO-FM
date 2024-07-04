@@ -10,8 +10,8 @@ experiment:
   resuming: false
   checkpoint: null              # this is the wandb run_id of the checkpoint to load
   backbone:
-    checkpoint: "/home/walsh/epoch=5-step=46434.ckpt" #"sdofm/runs/771lx6o3:best"
-    model: "mae"
+    checkpoint: null #"sdofm/runs/771lx6o3:best"
+    model: null
   seed: 0
   disable_cuda: false
   wandb:
@@ -29,7 +29,7 @@ experiment:
   fold: null
   evaluate: false               # skip training and only evaluate (requires checkpoint to be set)
   device: null                  # this is set automatically using the disable_cuda flag and torch.cuda.is_available()
-  precision: 'bf16-true'        # (32, 64) for cuda, ('32-true', '16-true', 'bf16-true') for tpu
+  precision: '32'        # (32, 64) for cuda, ('32-true', '16-true', 'bf16-true') for tpu
   log_n_batches: 1000           # log every n training batches
   save_results: true            # save full results to file and wandb
   accelerator: "auto"           # options are "auto", "gpu", "tpu", "ipu", or "cpu"
@@ -37,6 +37,7 @@ experiment:
   distributed:
     enabled: true               # set to true to use more than one device
     world_size: "auto"          # The "auto" option recognizes the machine you are on, and selects the appropriate number of accelerators.
+    strategy: "auto"
 
 # dataset configuration
 data:
@@ -47,7 +48,7 @@ data:
     val: [11]
     test: [12]
     holdout: []
-  num_workers: 16               # set appropriately for your machine
+  num_workers: 8               # set appropriately for your machine
   prefetch_factor: 3           # TODO: not implemented, 2 is default
   num_frames: 1                # WARNING: This is only read for FINETUNING, model num_frames overrides in BACKBONE
   drop_frame_dim: True         # Requires num_frames=1, for backwards compatibility
@@ -130,7 +131,7 @@ model:
     loss: "mse" # options: "mae", "mse", "mape"
     scheduler: "constant" #other options: "cosine", "plateau", "exp"
     scheduler_warmup: 0
-    batch_size: 24
+    batch_size: 2
     learning_rate: 0.0001
     weight_decay: 3e-4 # 0.0
     optimiser: "adam"

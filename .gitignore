@@ -1,6 +1,7 @@
 wandb
 output
 outputs
+*.tar
 
 # aux directories
 .vscode

@@ -60,9 +60,10 @@ class Finetuner(object):
                 else:
                     self.model = self.model_class(
                         # **self.cfg.model.mae,
-                        img_size=512,
-                        patch_size=16,
-                        embed_dim=128,
+                        img_size=self.cfg.model.mae.img_size,
+                        patch_size=self.cfg.model.mae.patch_size,
+                        embed_dim=self.cfg.model.mae.embed_dim,
+                        num_frames=self.cfg.model.mae.num_frames,
                         **self.cfg.model.autocalibration,
                         optimiser=self.cfg.model.opt.optimiser,
                         lr=self.cfg.model.opt.learning_rate,

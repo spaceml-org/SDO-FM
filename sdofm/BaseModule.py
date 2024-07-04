@@ -10,8 +10,10 @@ class BaseModule(pl.LightningModule):
         weight_decay: float = 0.0,
         hyperparam_ignore=[],
         # pass to pl.LightningModule
+        *args,
+        **kwargs
     ):
-        super().__init__()
+        super().__init__(*args, **kwargs)
         self.save_hyperparameters(ignore=hyperparam_ignore)
 
         # optimiser values

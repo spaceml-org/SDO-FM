@@ -719,7 +719,7 @@ class AutoEncoder(nn.Module):
     def sample(self, num_samples, t):
         scale_ind = 0
         z0_size = [num_samples] + self.z0_size
-        device = next(self.parameters()).device
+        device = next(self.parameters()) #.device
         mu = torch.zeros(z0_size).to(device)
         log_sigma = torch.zeros(z0_size).to(device)
         dist = Normal(mu=mu, log_sigma=log_sigma, temp=t)
@@ -802,10 +802,10 @@ class AutoEncoder(nn.Module):
                 if i not in self.sr_u:
                     num_w, row, col = weights[i].shape
                     self.sr_u[i] = F.normalize(
-                        torch.ones(num_w, row).normal_(0, 1).cuda(), dim=1, eps=1e-3
+                        torch.ones(num_w, row).normal_(0, 1).to(weights[i]), dim=1, eps=1e-3
                     )
                     self.sr_v[i] = F.normalize(
-                        torch.ones(num_w, col).normal_(0, 1).cuda(), dim=1, eps=1e-3
+                        torch.ones(num_w, col).normal_(0, 1).to(weights[i]), dim=1, eps=1e-3
                     )
                     # increase the number of iterations for the first time
                     num_iter = 10 * self.num_power_iter
