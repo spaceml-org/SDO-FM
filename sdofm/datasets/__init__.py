@@ -1,6 +1,7 @@
 from .DegradedSDOML import DegradedSDOMLDataModule
 from .SDOML import SDOMLDataModule
 from .SynopticSDOML import SynopticSDOMLDataModule
+from .HelioProjectedSDOML import HelioProjectedSDOMLDataModule
 from .BrightSpotsSDOML import BrightSpotsSDOMLDataModule
 from .RandomIntervalSDOML import RandomIntervalSDOMLDataModule
 from .TimestampedSDOML import TimestampedSDOMLDataModule
