@@ -13,7 +13,7 @@ from ..models import (
     Autocalibration13Head,
     ConvTransformerTokensToEmbeddingNeck,
     HybridIrradianceModel,
-    PrithviEncoder,
+    WrapEncoder,
 )
 
 

@@ -417,7 +417,7 @@
             "-m",
             "google_cloud_pipeline_components.container.v1.custom_job.launcher"
           ],
-          "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:2.14.1"
+          "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:2.15.0"
         }
       },
       "exec-endpoint-create": {
@@ -442,7 +442,7 @@
             "-m",
             "google_cloud_pipeline_components.container.v1.endpoint.create_endpoint.launcher"
           ],
-          "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:2.14.1"
+          "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:2.15.0"
         }
       },
       "exec-importer": {
@@ -481,7 +481,7 @@
             "-m",
             "google_cloud_pipeline_components.container.v1.endpoint.deploy_model.launcher"
           ],
-          "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:2.14.1"
+          "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:2.15.0"
         }
       },
       "exec-model-upload": {
@@ -507,7 +507,7 @@
             "-m",
             "google_cloud_pipeline_components.container.v1.model.upload_model.launcher"
           ],
-          "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:2.14.1"
+          "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:2.15.0"
         }
       }
     }
@@ -543,7 +543,7 @@
                     {
                       "containerSpec": {
                         "args": [
-                          "--config-name=pretrain_32.2M_samae_tpu"
+                          "--config-name=pretrain_32.2M_mae_HP_r512_e128_p16"
                         ],
                         "env": [
                           {
@@ -555,7 +555,7 @@
                       },
                       "machineSpec": {
                         "machineType": "ct5lp-hightpu-4t",
-                        "tpuTopology": "2x2"
+                        "tpuTopology": "4x8"
                       },
                       "nfs_mounts": [
                         {
@@ -740,5 +740,5 @@
     }
   },
   "schemaVersion": "2.1.0",
-  "sdkVersion": "kfp-2.7.0"
+  "sdkVersion": "kfp-2.5.0"
 }
