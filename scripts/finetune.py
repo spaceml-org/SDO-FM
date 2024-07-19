@@ -5,11 +5,12 @@ from pathlib import Path
 
 import lightning.pytorch as pl
 import torch
-import wandb
 
+import wandb
 from sdofm import utils
-from sdofm.datasets import SDOMLDataModule, DegradedSDOMLDataModule
+from sdofm.datasets import DegradedSDOMLDataModule, SDOMLDataModule
 from sdofm.finetuning import Autocalibration, VirtualEVE
+
 from .pretrain import Pretrainer
 
 

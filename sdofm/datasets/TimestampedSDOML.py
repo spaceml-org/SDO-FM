@@ -1,14 +1,15 @@
-from .SDOML import SDOMLDataModule, SDOMLDataset
-from ..io import io
-import pandas as pd
 import numpy as np
+import pandas as pd
+
+from ..io import io
+from .SDOML import SDOMLDataModule, SDOMLDataset
 
 
 class TimestampedSDOMLDataModule(SDOMLDataModule):
 
     def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)             
-                
+        super().__init__(*args, **kwargs)
+
     def setup(self, stage=None):
 
         self.train_ds = TimestampedSDOMLDataset(
@@ -64,29 +65,30 @@ class TimestampedSDOMLDataModule(SDOMLDataModule):
             min_date=self.min_date,
             max_date=self.max_date,
         )
-        
-        
+
+
 class TimestampedSDOMLDataset(SDOMLDataset):
-    
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-    
-    def __getitem__(self, idx):   
+
+    def __getitem__(self, idx):
 
         # sample num_frames between idx and idx - sampling_period
         items = self.aligndata.iloc[idx]
         # print(items.index, idx, pd.DataFrame([items]))
-        timestamps = [i.strftime("%Y-%m-%d %H:%M:%S") for i in pd.DataFrame([items]).index]
+        timestamps = [
+            i.strftime("%Y-%m-%d %H:%M:%S") for i in pd.DataFrame([items]).index
+        ]
 
-        r = {'timestamps': timestamps}
+        r = {"timestamps": timestamps}
 
         if self.eve_data:
             image_stack, eve_data = super().__getitem__(idx)
-            r['eve_data'] = eve_data
+            r["eve_data"] = eve_data
         else:
             image_stack = super().__getitem__(idx)
 
-        r['image_stack'] = image_stack
+        r["image_stack"] = image_stack
 
         return r
-            

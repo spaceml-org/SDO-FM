@@ -1,10 +1,8 @@
-
-
 import torch
-from torch import nn
 from timm.models.vision_transformer import Block, PatchEmbed
-from .. import utils
+from torch import nn
 
+from .. import utils
 
 
 class ViT2DEncoder(nn.Module):
@@ -129,7 +127,6 @@ class ViT2DEncoder(nn.Module):
         x = self.norm(x)
 
         return x
-    
-    
+
     def forward(self, x):
         return self.forward_encoder(x)
