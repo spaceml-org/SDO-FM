@@ -5,8 +5,11 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+from sdofm.constants import ALL_WAVELENGTHS
+
 from .. import utils
 from ..BaseModule import BaseModule
+from ..benchmarks import reconstruction as bench_recon
 from ..models import NVIDIAAutoEncoder
 from ..models.nvae.utils import (
     get_arch_cells,
@@ -15,9 +18,6 @@ from ..models.nvae.utils import (
     kl_coeff,
     reconstruction_loss,
 )
-
-from ..benchmarks import reconstruction as bench_recon
-from sdofm.constants import ALL_WAVELENGTHS
 
 
 class NVAE(BaseModule):

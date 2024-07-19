@@ -1,9 +1,10 @@
 # Adapted from:https://github.com/vale-salvatelli/sdo-autocal_pub/blob/master/src/sdo/pipelines/autocalibration_pipeline.py
 
+from typing import Optional
+
 import lightning.pytorch as pl
 import torch
 import torch.nn as nn
-from typing import Optional
 
 from ..BaseModule import BaseModule
 from ..models import (

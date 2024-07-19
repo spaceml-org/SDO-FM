@@ -1,14 +1,12 @@
+from typing import Optional
+
 import lightning.pytorch as pl
 import torch
 import torch.nn as nn
-from typing import Optional
 
 from ..BaseModule import BaseModule
-from ..models import (
-    Autocalibration13,
-)
-
 from ..finetuning.Autocalibration import HeteroscedasticLoss
+from ..models import Autocalibration13
 
 
 class AblationAutocalibration(BaseModule):

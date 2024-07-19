@@ -1,10 +1,12 @@
+import lightning.pytorch as pl
 import torch
 import torch.nn.functional as F
-import lightning.pytorch as pl
-from ..BaseModule import BaseModule
-from ..models import SolarAwareMaskedAutoencoderViT3D
+
 from sdofm.constants import ALL_WAVELENGTHS
+
+from ..BaseModule import BaseModule
 from ..benchmarks import reconstruction as bench_recon
+from ..models import SolarAwareMaskedAutoencoderViT3D
 
 
 class SAMAE(BaseModule):

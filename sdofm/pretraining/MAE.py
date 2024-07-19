@@ -1,10 +1,11 @@
 import lightning.pytorch as pl
 import torch.nn.functional as F
 
-from ..BaseModule import BaseModule
-from ..models import MaskedAutoencoderViT3D
-from ..benchmarks import reconstruction as bench_recon
 from sdofm.constants import ALL_WAVELENGTHS
+
+from ..BaseModule import BaseModule
+from ..benchmarks import reconstruction as bench_recon
+from ..models import MaskedAutoencoderViT3D
 
 
 class MAE(BaseModule):
@@ -92,6 +93,7 @@ class MAE(BaseModule):
 
         if isinstance(self.logger, pl.loggers.wandb.WandbLogger):
             from pandas import DataFrame
+
             import wandb
 
             # this only occurs on rank zero only

@@ -5,13 +5,13 @@
 # for NVAE. To view a copy of this license, see the LICENSE file.
 # ---------------------------------------------------------------
 
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
+from collections import OrderedDict
 
 # from torch.autograd import Variable
 import numpy as np
-from collections import OrderedDict
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
 
 from .neural_operations import ConvBNSwish, normalize_weight_jit
 

@@ -15,8 +15,8 @@
 from __future__ import division
 
 import torch
-from torch.nn.modules.batchnorm import _BatchNorm
 import torch.nn.functional as F
+from torch.nn.modules.batchnorm import _BatchNorm
 
 from .functions import SyncBatchNorm as sync_batch_norm
 from .swish import Swish as swish

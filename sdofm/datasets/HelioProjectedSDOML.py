@@ -4,9 +4,9 @@ import math
 
 import numpy as np
 import torch
-from overrides import override
 from astropy import units as u
 from astropy.coordinates import SkyCoord
+from overrides import override
 from sunpy.coordinates import frames
 from sunpy.map import Map
 

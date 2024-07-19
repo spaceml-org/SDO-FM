@@ -1,6 +1,7 @@
 # Adapted from https://github.com/FrontierDevelopmentLab/2023-FDL-X-ARD-EVE
 
 import sys
+
 import lightning.pytorch as pl
 import torch
 import torch.nn as nn
@@ -11,8 +12,8 @@ from ..BaseModule import BaseModule
 from ..models import (
     Autocalibration13Head,
     ConvTransformerTokensToEmbeddingNeck,
-    PrithviEncoder,
     HybridIrradianceModel,
+    PrithviEncoder,
 )
 
 
@@ -72,7 +73,7 @@ class VirtualEVE_bUNet(BaseModule):
 
     def training_step(self, batch, batch_idx):
         image_stack, eve = batch
-        x = self.encoder.forward_encode(image_stack) # imgs[:, :9, :, :, :]
+        x = self.encoder.forward_encode(image_stack)  # imgs[:, :9, :, :, :]
         embeddings = self.encoder.forward_from_embeddings(x).reshape(-1)
         y_hat = self.head(embeddings)
         loss = self.head.loss_func(y_hat, eve[:, :38])
@@ -81,7 +82,7 @@ class VirtualEVE_bUNet(BaseModule):
 
     def validation_step(self, batch, batch_idx):
         image_stack, eve = batch
-        x = self.encoder.forward_encode(image_stack) # imgs[:, :9, :, :, :]
+        x = self.encoder.forward_encode(image_stack)  # imgs[:, :9, :, :, :]
         embeddings = self.encoder.forward_from_embeddings(x).reshape(-1)
         y_hat = self.head(embeddings)
         loss = self.head.loss_func(y_hat, eve[:, :38])

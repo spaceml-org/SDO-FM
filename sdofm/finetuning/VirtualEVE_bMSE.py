@@ -1,6 +1,7 @@
 # Adapted from https://github.com/FrontierDevelopmentLab/2023-FDL-X-ARD-EVE
 
 import sys
+
 import lightning.pytorch as pl
 import torch
 import torch.nn as nn
@@ -11,8 +12,8 @@ from ..BaseModule import BaseModule
 from ..models import (
     Autocalibration13Head,
     ConvTransformerTokensToEmbeddingNeck,
-    PrithviEncoder,
     HybridIrradianceModel,
+    PrithviEncoder,
 )
 
 

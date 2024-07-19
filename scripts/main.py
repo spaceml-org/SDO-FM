@@ -2,6 +2,7 @@
 Main entry point. Uses Hydra to load config files and override defaults with command line args
 """
 
+import logging
 import os
 import random
 import time
@@ -11,15 +12,13 @@ from pathlib import Path
 import hydra
 import numpy as np
 import torch
-import wandb
-from omegaconf import DictConfig, OmegaConf
 from lightning.pytorch import seed_everything
 from lightning.pytorch.loggers.wandb import WandbLogger
-import warnings
+from omegaconf import DictConfig, OmegaConf
 
+import wandb
 from sdofm import utils  # import days_hours_mins_secs_str
 from sdofm.utils import flatten_dict
-import logging
 
 # import torch_xla.debug.profiler as xp
 

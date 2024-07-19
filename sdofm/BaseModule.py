@@ -11,7 +11,7 @@ class BaseModule(pl.LightningModule):
         hyperparam_ignore=[],
         # pass to pl.LightningModule
         *args,
-        **kwargs
+        **kwargs,
     ):
         super().__init__(*args, **kwargs)
         self.save_hyperparameters(ignore=hyperparam_ignore)

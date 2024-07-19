@@ -1,15 +1,14 @@
 # Main pretraining and evaluation script for SDO-FM
 
+import glob
 import os
 from pathlib import Path
-import glob
 
 import lightning.pytorch as pl
+import torch
 from lightning.fabric.strategies import XLAFSDPStrategy
 
-import torch
 import wandb
-
 from sdofm import utils
 from sdofm.datasets import SDOMLDataModule, BrightSpotsSDOMLDataModule, HelioProjectedSDOMLDataModule
 from sdofm.pretraining import MAE, NVAE, SAMAE, BrightSpots
@@ -143,7 +142,7 @@ class Pretrainer(object):
                     frequency=cfg.data.sdoml.frequency,
                     batch_size=cfg.model.opt.batch_size,
                     num_workers=cfg.data.num_workers,
-                    blosc_cache = None, # "/home/walsh/blosc_cache", # disable for TPUs
+                    blosc_cache=None,  # "/home/walsh/blosc_cache", # disable for TPUs
                     val_months=cfg.data.month_splits.val,
                     test_months=cfg.data.month_splits.test,
                     holdout_months=cfg.data.month_splits.holdout,

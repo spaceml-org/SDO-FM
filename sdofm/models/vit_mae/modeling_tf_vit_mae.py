@@ -25,8 +25,8 @@ from typing import Optional, Tuple, Union
 
 import numpy as np
 import tensorflow as tf
-
 from transformers.activations_tf import get_tf_activation
+
 from ...file_utils import (
     ModelOutput,
     add_start_docstrings,
@@ -53,7 +53,6 @@ _CHECKPOINT_FOR_DOC = "facebook/vit-mae-base"
 
 from ...configuration_utils import PretrainedConfig
 from ...utils import logging
-
 
 logger = logging.get_logger(__name__)
 

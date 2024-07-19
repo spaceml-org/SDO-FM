@@ -5,11 +5,11 @@ from pathlib import Path
 
 import lightning.pytorch as pl
 import torch
-import wandb
 
+import wandb
 from sdofm import utils
-from sdofm.datasets import SDOMLDataModule, DegradedSDOMLDataModule
 from sdofm.ablation import AblationAutocalibration
+from sdofm.datasets import DegradedSDOMLDataModule, SDOMLDataModule
 from sdofm.models import HybridIrradianceModel
 
 
