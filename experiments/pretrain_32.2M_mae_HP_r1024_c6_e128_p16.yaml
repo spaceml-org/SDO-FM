@@ -62,7 +62,7 @@ data:
   drop_frame_dim: false
   # output_directory: "wandb_output"
   sdoml:
-    base_directory: "/mnt/sdoml2011"
+    base_directory: "/mnt/sdo2011"
     sub_directory:
       hmi: "HMI"
       aia: "THIS WOULD BE THE WEBDATASET"
