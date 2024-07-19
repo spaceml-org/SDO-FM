@@ -25,7 +25,7 @@ ALL_IONS = [
     "Fe XV",
     "Fe XVI",
     "Fe XVIII",
-    "Fe XVI_2",
+    # "Fe XVI_2", # problematic
     "Fe XX",
     "Fe XX_2",
     "Fe XX_3",

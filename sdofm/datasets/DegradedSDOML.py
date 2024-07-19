@@ -75,6 +75,7 @@ class DegradedSDOMLDataset(SDOMLDataset):
 
         SAFETY = 1000
         dim_factor = torch.zeros(self.num_channels)
+        dim_factor = self.max_alpha * torch.rand(self.num_channels)
         while any(dim_factor < self.min_alpha) and SAFETY > 0:
             dim_factor = self.max_alpha * torch.rand(self.num_channels)
             SAFETY -= 1
@@ -129,6 +130,7 @@ class DegradedSDOMLDataModule(SDOMLDataModule):
             normalizations=self.normalizations,
             mask=self.hmi_mask.numpy(),
             num_frames=self.num_frames,
+            drop_frame_dim=self.drop_frame_dim,
             min_date=self.min_date,
             max_date=self.max_date,
             # Degraded
@@ -153,6 +155,7 @@ class DegradedSDOMLDataModule(SDOMLDataModule):
             normalizations=self.normalizations,
             mask=self.hmi_mask.numpy(),
             num_frames=self.num_frames,
+            drop_frame_dim=self.drop_frame_dim,
             min_date=self.min_date,
             max_date=self.max_date,
             # Degraded
@@ -177,6 +180,7 @@ class DegradedSDOMLDataModule(SDOMLDataModule):
             normalizations=self.normalizations,
             mask=self.hmi_mask.numpy(),
             num_frames=self.num_frames,
+            drop_frame_dim=self.drop_frame_dim,
             min_date=self.min_date,
             max_date=self.max_date,
             # Degraded

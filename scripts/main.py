@@ -2,6 +2,7 @@
 Main entry point. Uses Hydra to load config files and override defaults with command line args
 """
 
+import logging
 import os
 import random
 import time
@@ -11,15 +12,13 @@ from pathlib import Path
 import hydra
 import numpy as np
 import torch
-import wandb
-from omegaconf import DictConfig, OmegaConf
 from lightning.pytorch import seed_everything
 from lightning.pytorch.loggers.wandb import WandbLogger
-import warnings
+from omegaconf import DictConfig, OmegaConf
 
+import wandb
 from sdofm import utils  # import days_hours_mins_secs_str
 from sdofm.utils import flatten_dict
-import logging
 
 # import torch_xla.debug.profiler as xp
 
@@ -108,6 +107,13 @@ def main(cfg: DictConfig) -> None:
             "offline" if not cfg.experiment.wandb.enable else "online"
         )
 
+        resume = "never"
+        run_id = None
+        if cfg.experiment.resuming:
+            resume = "allow"
+            run_id = cfg.experiment.checkpoint.split(":")[0].split("-")[-1]
+            print("Will attempt to resume W&B run", run_id)
+
         logger = WandbLogger(
             # WandbLogger params
             name=cfg.experiment.name,
@@ -121,7 +127,10 @@ def main(cfg: DictConfig) -> None:
             save_code=True,
             job_type=cfg.experiment.wandb.job_type,
             config=flatten_dict(cfg),
+            resume=resume,
+            id=run_id,
         )
+
     else:
         logger = None
 
@@ -147,6 +156,11 @@ def main(cfg: DictConfig) -> None:
 
             finetuner = Finetuner(cfg, logger=logger, profiler=profiler)
             finetuner.run()
+        case "ablation":
+            from scripts.ablation import Ablation
+
+            ablation = Ablation(cfg, logger=logger, profiler=profiler)
+            ablation.run()
         case _:
             raise NotImplementedError(
                 f"Experiment {cfg.experiment.task} not implemented"

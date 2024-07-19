@@ -10,7 +10,7 @@ experiment:
   resuming: false
   checkpoint: null              # this is the wandb run_id of the checkpoint to load
   backbone:
-    checkpoint: "/home/walsh/epoch=5-step=46434.ckpt" #"sdofm/runs/771lx6o3:best"
+    checkpoint: "model-tk45el88:best" #"sdofm/runs/771lx6o3:best"
     model: "mae"
   seed: 0
   disable_cuda: false
@@ -22,7 +22,7 @@ experiment:
     tags: []
     notes: ""
     output_directory: "wandb_output"
-    log_model: True             # can be True (final checkpoint), False (no checkpointing), or "all" (for all epoches)
+    log_model: "all"             # can be True (final checkpoint), False (no checkpointing), or "all" (for all epoches)
   gcp_storage:                  # this will checkpoint all epoches and upload them to a GCP bucket, W&B will store references (TODO: perhaps explain this better)
     enabled: true
     bucket: "sdofm-checkpoints"
@@ -37,6 +37,8 @@ experiment:
   distributed:
     enabled: true               # set to true to use more than one device
     world_size: "auto"          # The "auto" option recognizes the machine you are on, and selects the appropriate number of accelerators.
+    strategy: "auto"
+  log_every_n_steps: 5
 
 # dataset configuration
 data:
@@ -49,7 +51,7 @@ data:
     holdout: []
   num_workers: 8               # set appropriately for your machine
   prefetch_factor: 3            # TODO: not implemented, 2 is default
-  num_frames: 5 # WARNING: This is only read for FINETUNING, model num_frames overrides in BACKBONE
+  num_frames: 1 # WARNING: This is only read for FINETUNING, model num_frames overrides in BACKBONE
   sdoml:
     base_directory: "/mnt/sdoml"
     sub_directory:
@@ -69,10 +71,10 @@ model:
   mae:
     img_size: 512
     patch_size: 16
-    num_frames: 5
+    num_frames: 1
     tubelet_size: 1
     in_chans: 9
-    embed_dim: 128
+    embed_dim: 512
     depth: 24
     num_heads: 16
     decoder_embed_dim: 512
@@ -81,6 +83,7 @@ model:
     mlp_ratio: 4.0
     norm_layer: 'LayerNorm'
     norm_pix_loss: False
+    masking_ratio: 0.5
   samae:
     # uses all parameters as in mae plus these
     masking_type: "random"  # 'random' or 'solar_aware'
@@ -120,7 +123,7 @@ model:
   # FINE-TUNERS
   autocalibration:
     num_neck_filters: 32
-    output_dim: 1 # not sure why this is implemented for autocorrelation, should be a scalar
+    output_dim: 9 # not sure why this is implemented for autocorrelation, should be a scalar
     loss: "mse" # options: "mse", "heteroscedastic"
     freeze_encoder: true
     

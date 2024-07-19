@@ -13,8 +13,8 @@
 # ---------------------------------------------------------------
 
 import torch
-from torch.autograd.function import Function
 import torch.distributed as dist
+from torch.autograd.function import Function
 
 
 class SyncBatchNorm(Function):
