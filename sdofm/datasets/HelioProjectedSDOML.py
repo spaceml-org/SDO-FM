@@ -63,20 +63,24 @@ class HelioProjectedSDOMLDataset(SDOMLDataset):
             # headers = np.array([headers])
 
         frame_dim = []
-        
+
         for f in range(imgs.shape[1]):
             projected_maps = []
 
             for idx in range(imgs.shape[0]):
                 if self.fast_mode:
                     if self.pixel_lookup_cache is None:
-                        map = Map((np.array(imgs[idx, f, :, :]), headers[channels[idx]]))
+                        map = Map(
+                            (np.array(imgs[idx, f, :, :]), headers[channels[idx]])
+                        )
                         x, y = map.world_to_pixel(self.coords)
                         # Converts pixel locations to integers to use as indices to extract data from image array.
                         self.pixel_lookup_cache = (x.astype(int), y.astype(int))
                         self.get_header = False
                     projected_maps.append(
-                        imgs[idx][f][self.pixel_lookup_cache[0], self.pixel_lookup_cache[1]]
+                        imgs[idx][f][
+                            self.pixel_lookup_cache[0], self.pixel_lookup_cache[1]
+                        ]
                     )
                 else:  # recreate the map for every image for correct headers
                     # are headers for f>1 being correctly collected?
@@ -85,8 +89,12 @@ class HelioProjectedSDOMLDataset(SDOMLDataset):
                     projected_maps.append(imgs[idx][f][x.astype(int), y.astype(int)])
 
             frame_dim.append(np.stack(projected_maps))
-        
-        return np.stack(frame_dim).transpose([1,0,2,3]) if not self.drop_frame_dim else frame_dim[-1]
+
+        return (
+            np.stack(frame_dim).transpose([1, 0, 2, 3])
+            if not self.drop_frame_dim
+            else frame_dim[-1]
+        )
 
 
 class HelioProjectedSDOMLDataModule(SDOMLDataModule):

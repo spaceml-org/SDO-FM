@@ -10,7 +10,11 @@ from lightning.fabric.strategies import XLAFSDPStrategy
 
 import wandb
 from sdofm import utils
-from sdofm.datasets import SDOMLDataModule, BrightSpotsSDOMLDataModule, HelioProjectedSDOMLDataModule
+from sdofm.datasets import (
+    SDOMLDataModule,
+    BrightSpotsSDOMLDataModule,
+    HelioProjectedSDOMLDataModule,
+)
 from sdofm.pretraining import MAE, NVAE, SAMAE, BrightSpots
 
 
@@ -30,11 +34,11 @@ class Pretrainer(object):
 
         if cfg.data.sdoml.feature_engineering.enabled:
             match cfg.data.sdoml.feature_engineering.dclass:
-                case 'BrightSpots':
+                case "BrightSpots":
                     self.data_module_class = BrightSpotsSDOMLDataModule
-                case 'HelioProjected':
+                case "HelioProjected":
                     self.data_module_class = HelioProjectedSDOMLDataModule
-        print(f'Using {self.data_module_class} Data Class')
+        print(f"Using {self.data_module_class} Data Class")
 
         match model_name:
             case "mae":
