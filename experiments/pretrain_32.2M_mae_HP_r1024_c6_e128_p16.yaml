@@ -13,7 +13,7 @@
 # general
 log_level: 'DEBUG'
 experiment:
-  name: "mae-helioprojected-2011subset-r512-e128-p16" # generate random name in wandb
+  name: "mae-helioprojected-2011subset-r1024-c6-e128-p16" # generate random name in wandb
   project: "sdofm"
   task: "pretrain" # options: train, evaluate (not implemented)
   model: "mae"
@@ -37,7 +37,7 @@ experiment:
   evaluate: false     # skip training and only evaluate (requires checkpoint to be set)
   checkpoint: null    # this is the wandb run_id of the checkpoint to load
   device: null        # this is set automatically using the disable_cuda flag and torch.cuda.is_available()
-  precision: 'bf16-true' #-true'       # (32, 64) for cuda, ('32-true', '16-true', 'bf16-true') for tpu
+  precision: '16' #-true'       # (32, 64) for cuda, ('32-true', '16-true', 'bf16-true') for tpu
   log_n_batches: 1000 # log every n training batches
   save_results: true  # save full results to file and wandb
   accelerator: "auto"  # options are "auto", "gpu", "tpu", "ipu", or "cpu"
@@ -81,8 +81,8 @@ data:
 model:
   # PRETRAINERS
   mae:
-    img_size: 512
-    patch_size: 16
+    img_size: 1024
+    patch_size: 32 # this is 16 for 512
     num_frames: 1
     tubelet_size: 1
     in_chans: 9
@@ -148,7 +148,7 @@ model:
     learning_rate: 0.0001
     weight_decay: 3e-4 # 0.0
     optimiser: "adam"
-    epochs: 100
+    epochs: 2
     patience: 2
 
 # hydra configuration
