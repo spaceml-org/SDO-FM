@@ -20,7 +20,7 @@ class HelioProjectedSDOMLDataset(SDOMLDataset):
         img_size: int = 512,
         long_range: float = 90,  # Goes from 0 - 90. 0 = zero coverage, 90 = full coverage
         lat_range: float = 90,
-        fast_mode: bool = False,
+        fast_mode: bool = True,
         **kwargs
     ):
         super().__init__(*args, **kwargs)
@@ -48,27 +48,45 @@ class HelioProjectedSDOMLDataset(SDOMLDataset):
         # uncomment this for debugging
         # return super().__getitem__(idx)
 
-        imgs, headers = super().__getitem__(idx)
-        channels = list(headers.keys())
+        if self.get_header:
+            imgs, headers = super().__getitem__(idx)
+            channels = list(headers.keys())
+        else:
+            imgs = super().__getitem__(idx)
+        # print(imgs.shape)
+        # print(headers.keys())
+        # print(imgs.shape, headers.shape)
 
-        projected_maps = []
-        for idx in range(imgs.shape[0]):
+        if self.drop_frame_dim:
+            imgs = imgs.reshape((imgs.shape[0], 1, imgs.shape[1], imgs.shape[2]))
+            # print(imgs.shape)
+            # headers = np.array([headers])
 
-            if self.fast_mode:
-                if not self.self.reference_map:
-                    map = Map((np.array(imgs[idx, :, :]), headers[channels[idx]]))
+        frame_dim = []
+        
+        for f in range(imgs.shape[1]):
+            projected_maps = []
+
+            for idx in range(imgs.shape[0]):
+                if self.fast_mode:
+                    if self.pixel_lookup_cache is None:
+                        map = Map((np.array(imgs[idx, f, :, :]), headers[channels[idx]]))
+                        x, y = map.world_to_pixel(self.coords)
+                        # Converts pixel locations to integers to use as indices to extract data from image array.
+                        self.pixel_lookup_cache = (x.astype(int), y.astype(int))
+                        self.get_header = False
+                    projected_maps.append(
+                        imgs[idx][f][self.pixel_lookup_cache[0], self.pixel_lookup_cache[1]]
+                    )
+                else:  # recreate the map for every image for correct headers
+                    # are headers for f>1 being correctly collected?
+                    map = Map((np.array(imgs[idx, f, :, :]), headers[channels[idx]]))
                     x, y = map.world_to_pixel(self.coords)
-                    # Converts pixel locations to integers to use as indices to extract data from image array.
-                    self.pixel_lookup_cache = (x.astype(int), y.astype(int))
-                projected_maps.append(
-                    imgs[idx][self.pixel_lookup_cache[0], self.pixel_lookup_cache[1]]
-                )
-            else:  # recreate the map for every image for correct headers
-                map = Map((np.array(imgs[idx, :, :]), headers[channels[idx]]))
-                x, y = map.world_to_pixel(self.coords)
-                projected_maps.append(imgs[idx][x.astype(int), y.astype(int)])
+                    projected_maps.append(imgs[idx][f][x.astype(int), y.astype(int)])
 
-        return np.stack(projected_maps)
+            frame_dim.append(np.stack(projected_maps))
+        
+        return np.stack(frame_dim).transpose([1,0,2,3]) if not self.drop_frame_dim else frame_dim[-1]
 
 
 class HelioProjectedSDOMLDataModule(SDOMLDataModule):
@@ -94,7 +112,7 @@ class HelioProjectedSDOMLDataModule(SDOMLDataModule):
             kwargs["hmi_path"] is not None or kwargs["eve_path"] is not None
         ):  # hmi or eve specified
             raise NotImplementedError(
-                "Degraded SDOML dataloader is designed for AIA only."
+                "Projected SDOML dataloader is designed for AIA only."
             )
 
     @override

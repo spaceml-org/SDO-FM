@@ -177,6 +177,7 @@ class SDOMLDataset(Dataset):
             for frame in range(self.num_frames):
                 idx_row_element = self.aligndata.iloc[idx + frame]
                 idx_wavelength = idx_row_element[f"idx_{wavelength}"]
+                # print('idx_wavelength', idx_wavelength)
                 year = str(idx_row_element.name.year)
                 img = self.aia_data[year][wavelength][idx_wavelength, :, :]
 
@@ -187,14 +188,17 @@ class SDOMLDataset(Dataset):
 
                 if self.get_header:
                     # aia_header_dict[wavelength].append(self.aia_data[year][wavelength].attrs[self.attrs][idx_wavelength])
-                    aia_header_dict[wavelength].append(
-                        {
-                            keys: values[idx_wavelength]
-                            for keys, values in self.aia_data[year][
-                                wavelength
-                            ].attrs.items()
-                        }
-                    )
+                    try:
+                        aia_header_dict[wavelength].append(
+                            {
+                                keys: values[idx_wavelength]
+                                for keys, values in self.aia_data[year][
+                                    wavelength
+                                ].attrs.items()
+                            }
+                        )
+                    except:
+                        aia_header_dict[wavelength].append(None)
 
                 if self.normalizations:
                     aia_image_dict[wavelength][-1] -= self.normalizations["AIA"][

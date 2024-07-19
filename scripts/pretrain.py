@@ -11,7 +11,7 @@ import torch
 import wandb
 
 from sdofm import utils
-from sdofm.datasets import SDOMLDataModule, BrightSpotsSDOMLDataModule
+from sdofm.datasets import SDOMLDataModule, BrightSpotsSDOMLDataModule, HelioProjectedSDOMLDataModule
 from sdofm.pretraining import MAE, NVAE, SAMAE, BrightSpots
 
 
@@ -23,10 +23,19 @@ class Pretrainer(object):
         self.data_module = None
         self.model = None
         self.model_class = None
+        self.data_module_class = SDOMLDataModule
 
         model_name = (
             cfg.experiment.model if not is_backbone else cfg.experiment.backbone.model
         )
+
+        if cfg.data.sdoml.feature_engineering.enabled:
+            match cfg.data.sdoml.feature_engineering.dclass:
+                case 'BrightSpots':
+                    self.data_module_class = BrightSpotsSDOMLDataModule
+                case 'HelioProjected':
+                    self.data_module_class = HelioProjectedSDOMLDataModule
+        print(f'Using {self.data_module_class} Data Class')
 
         match model_name:
             case "mae":
@@ -58,6 +67,7 @@ class Pretrainer(object):
                     min_date=cfg.data.min_date,
                     max_date=cfg.data.max_date,
                     num_frames=cfg.model.mae.num_frames,
+                    drop_frame_dim=cfg.data.drop_frame_dim,
                 )
                 self.data_module.setup()
 
@@ -76,7 +86,7 @@ class Pretrainer(object):
                     )
             case "samae":
                 self.model_class = SAMAE
-                self.data_module = SDOMLDataModule(
+                self.data_module = self.data_module_class(
                     hmi_path=None,
                     aia_path=os.path.join(
                         cfg.data.sdoml.base_directory, cfg.data.sdoml.sub_directory.aia
@@ -98,6 +108,7 @@ class Pretrainer(object):
                     min_date=cfg.data.min_date,
                     max_date=cfg.data.max_date,
                     num_frames=cfg.model.mae.num_frames,
+                    drop_frame_dim=cfg.data.drop_frame_dim,
                 )
                 self.data_module.setup()
 
