@@ -102,6 +102,9 @@ def main():
                     drop_cls_token=True,
                     num_frames=1,
                 )
+
+                if opt.device != "cpu":
+                    emb_decoder = emb_decoder.to(torch.device(opt.device))
             case _:
                 raise ValueError(
                     f"Model export of {cfg.experiment.model} not yet supported."
@@ -131,6 +134,9 @@ def main():
 
         x, timestamps = data["image_stack"], data["timestamps"][0]
         batch_size = x.shape[0]
+
+        if opt.device != "cpu":
+            x = x.to(torch.device(opt.device))
 
         match (cfg.experiment.model):
             case "nvae":
