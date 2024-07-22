@@ -2,14 +2,12 @@ astropy
 blosc
 dask
 lightning[extra]
+ipykernel
 loguru
 omegaconf
 overrides
 pandas
 scipy
 sunpy
-torch
-torchaudio
-torchvision
 wandb
 zarr
