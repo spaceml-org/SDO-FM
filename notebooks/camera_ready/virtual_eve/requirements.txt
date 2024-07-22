@@ -1,10 +1,13 @@
+astropy
 blosc
 dask
 lightning[extra]
 loguru
 omegaconf
+overrides
 pandas
 scipy
+sunpy
 torch
 torchaudio
 torchvision
