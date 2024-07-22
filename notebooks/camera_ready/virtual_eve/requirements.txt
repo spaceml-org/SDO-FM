@@ -1,0 +1,12 @@
+blosc
+dask
+lightning[extra]
+loguru
+omegaconf
+pandas
+scipy
+torch
+torchaudio
+torchvision
+wandb
+zarr
