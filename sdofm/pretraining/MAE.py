@@ -27,6 +27,7 @@ class MAE(BaseModule):
         norm_layer="LayerNorm",
         norm_pix_loss=False,
         masking_ratio=0.75,
+        limb_mask=None,
         # pass to BaseModule
         *args,
         **kwargs,
@@ -51,6 +52,7 @@ class MAE(BaseModule):
             mlp_ratio,
             norm_layer,
             norm_pix_loss,
+            limb_mask,
         )
         # self.autoencoder = PrithviEncoder(self.mae)
 

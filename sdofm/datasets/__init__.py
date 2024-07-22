@@ -5,3 +5,4 @@ from .RandomIntervalSDOML import RandomIntervalSDOMLDataModule
 from .SDOML import SDOMLDataModule
 from .SynopticSDOML import SynopticSDOMLDataModule
 from .TimestampedSDOML import TimestampedSDOMLDataModule
+from .NonLinearSDOML import NonLinearSDOMLDataModule

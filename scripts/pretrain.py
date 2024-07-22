@@ -14,6 +14,7 @@ from sdofm.datasets import (
     SDOMLDataModule,
     BrightSpotsSDOMLDataModule,
     HelioProjectedSDOMLDataModule,
+    NonLinearSDOMLDataModule
 )
 from sdofm.pretraining import MAE, NVAE, SAMAE, BrightSpots
 
@@ -38,13 +39,16 @@ class Pretrainer(object):
                     self.data_module_class = BrightSpotsSDOMLDataModule
                 case "HelioProjected":
                     self.data_module_class = HelioProjectedSDOMLDataModule
+                case "Log":
+                    self.data_module_class = NonLinearSDOMLDataModule
+                
         print(f"Using {self.data_module_class} Data Class")
 
         match model_name:
             case "mae":
                 self.model_class = MAE
 
-                self.data_module = SDOMLDataModule(
+                self.data_module = self.data_module_class(
                     # hmi_path=os.path.join(
                     #     self.cfg.data.sdoml.base_directory, self.cfg.data.sdoml.sub_directory.hmi
                     # ),
@@ -71,6 +75,7 @@ class Pretrainer(object):
                     max_date=cfg.data.max_date,
                     num_frames=cfg.model.mae.num_frames,
                     drop_frame_dim=cfg.data.drop_frame_dim,
+                    apply_mask=cfg.data.sdoml.apply_mask,
                 )
                 self.data_module.setup()
 
@@ -83,6 +88,7 @@ class Pretrainer(object):
                 else:
                     self.model = self.model_class(
                         **cfg.model.mae,
+                        limb_mask = self.data_module.hmi_mask if cfg.model.misc.limb_mask is True else None,
                         optimiser=cfg.model.opt.optimiser,
                         lr=cfg.model.opt.learning_rate,
                         weight_decay=cfg.model.opt.weight_decay,
@@ -112,6 +118,7 @@ class Pretrainer(object):
                     max_date=cfg.data.max_date,
                     num_frames=cfg.model.mae.num_frames,
                     drop_frame_dim=cfg.data.drop_frame_dim,
+                    apply_mask=cfg.data.sdoml.apply_mask,
                 )
                 self.data_module.setup()
 

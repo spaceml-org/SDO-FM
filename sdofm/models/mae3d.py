@@ -81,6 +81,7 @@ class MaskedAutoencoderViT3D(nn.Module):
         mlp_ratio=4.0,
         norm_layer="LayerNorm",
         norm_pix_loss=False,
+        limb_mask=None,
     ):
         super().__init__()
 
@@ -91,6 +92,15 @@ class MaskedAutoencoderViT3D(nn.Module):
                 raise NotImplementedError(f"Norm layer [{norm_layer}] not implemented.")
 
         # --------------------------------------------------------------------------
+        # Limb masking specifics
+        self.limb_mask = limb_mask
+
+        if self.limb_mask is not None:
+            from skimage.measure import block_reduce
+            import numpy as np 
+            new_matrix = block_reduce(data_module.hmi_mask.numpy(), block_size=(16,16), func=np.max)
+            self.ids_limb_mask = torch.tensor(np.argwhere(new_matrix.reshape(1024)==0).reshape(-1))
+        
         # MAE encoder specifics
         self.patch_embed = PatchEmbed(
             img_size, patch_size, num_frames, tubelet_size, in_chans, embed_dim
@@ -240,6 +250,14 @@ class MaskedAutoencoderViT3D(nn.Module):
 
         # keep the first subset
         ids_keep = ids_shuffle[:, :len_keep]
+
+        # if using a solar limb mask, we're not interested in predicting outside the
+        # disk. For that we override these kept ids to include always keeping the mask
+        # as we don't want to learn that.
+        if self.limb_mask is not None:
+            ids_keep = torch.unique(torch.cat((ids_keep[0], self.ids_limb_mask)))
+            len_keep = len(ids)
+
         x_masked = torch.gather(x, dim=1, index=ids_keep.unsqueeze(-1).repeat(1, 1, D))
 
         # generate the binary mask: 0 is keep, 1 is remove
