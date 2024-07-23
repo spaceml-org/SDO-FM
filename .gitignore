@@ -2,6 +2,7 @@ wandb
 output
 outputs
 *.tar
+notebooks/camera_ready/*/lightning_logs
 
 # aux directories
 .vscode
