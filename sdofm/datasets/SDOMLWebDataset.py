@@ -184,7 +184,7 @@ class SDOMLWebDataset(Dataset):
         return output
 
 
-class SDOMLWebDatasetDataModule(pl.LightningDataModule):
+class SDOMLWebDataModule(pl.LightningDataModule):
     def __init__(
         self,
         hmi_tar_path,
@@ -239,4 +239,84 @@ class SDOMLWebDatasetDataModule(pl.LightningDataModule):
 
         self.aligndata = self.__aligntime()
         self.normalizations = self.__calc_normalizations()
-        self.hmi_mask
+        self.hmi_mask = self.__make_hmi_mask() if apply_mask else None
+
+    def __str__(self):
+        output = ""
+        for k, v in self.__dict__.items():
+            output += f"{k}: {v}\n"
+        return output
+
+    def setup(self, stage=None):
+        self.train_ds = SDOMLWebDataset(
+            self.aligndata,
+            self.aia_tar_path,
+            self.hmi_tar_path,
+            self.eve_tar_path,
+            self.components,
+            self.wavelengths,
+            self.ions,
+            self.cadence,
+            self.train_months,
+            normalizations=self.normalizations,
+            mask=self.hmi_mask.numpy(),
+            num_frames=self.num_frames,
+            drop_frame_dim=self.drop_frame_dim,
+            min_date=self.min_date,
+            max_date=self.max_date,
+        )
+
+        self.valid_ds = SDOMLWebDataset(
+            self.aligndata,
+            self.aia_tar_path,
+            self.hmi_tar_path,
+            self.eve_tar_path,
+            self.components,
+            self.wavelengths,
+            self.ions,
+            self.cadence,
+            self.val_months,
+            normalizations=self.normalizations,
+            mask=self.hmi_mask.numpy(),
+            num_frames=self.num_frames,
+            drop_frame_dim=self.drop_frame_dim,
+            min_date=self.min_date,
+            max_date=self.max_date,
+        )
+
+        self.test_ds = SDOMLWebDataset(
+            self.aligndata,
+            self.aia_tar_path,
+            self.hmi_tar_path,
+            self.eve_tar_path,
+            self.components,
+            self.wavelengths,
+            self.ions,
+            self.cadence,
+            self.test_months,
+            normalizations=self.normalizations,
+            mask=self.hmi_mask.numpy(),
+            num_frames=self.num_frames,
+            drop_frame_dim=self.drop_frame_dim,
+            min_date=self.min_date,
+            max_date=self.max_date,
+        )
+
+    def train_dataloader(self):
+        return torch.utils.data.DataLoader(
+            self.train_ds,
+            batch_size=self.batch_size,
+            num_workers=self.num_workers,
+            shuffle=True,
+            drop_last=True,
+        )
+
+    def val_dataloader(self):
+        return torch.utils.data.DataLoader(
+            self.valid_ds, batch_size=self.batch_size, num_workers=self.num_workers
+        )
+
+    def test_dataloader(self):
+        return torch.utils.data.DataLoader(
+            self.test_ds, batch_size=self.batch_size, num_workers=self.num_workers
+        )
