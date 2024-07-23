@@ -8,7 +8,7 @@ experiment:
   resuming: false
   checkpoint: null              # this is the wandb run_id of the checkpoint to load
   backbone:
-    checkpoint: "../model.ckpt"
+    checkpoint: "assets/pretrained_model.ckpt"
     model: "mae"
   seed: 0
   disable_cuda: false
