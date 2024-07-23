@@ -53,9 +53,13 @@ class SDOMLWebDataset(Dataset):
         self.drop_frame_dim = drop_frame_dim
 
         # Filter alignment data based on months and date range
-        self.aligndata = self.aligndata.loc[self.aligndata.index.month.isin(self.months), :]
+        self.aligndata = self.aligndata.loc[
+            self.aligndata.index.month.isin(self.months), :
+        ]
         if min_date and max_date:
-            self.aligndata = self.aligndata[(self.aligndata.index >= min_date) & (self.aligndata.index <= max_date)]
+            self.aligndata = self.aligndata[
+                (self.aligndata.index >= min_date) & (self.aligndata.index <= max_date)
+            ]
 
         # Create WebDataset pipelines
         self.aia_dataset = wds.WebDataset(aia_tar_path) if aia_tar_path else None
@@ -115,17 +119,28 @@ class SDOMLWebDataset(Dataset):
                 if self.get_header:
                     try:
                         aia_header_dict[wavelength].append(
-                            {keys: values[idx_wavelength] for keys, values in ds.attrs.items()}
+                            {
+                                keys: values[idx_wavelength]
+                                for keys, values in ds.attrs.items()
+                            }
                         )
                     except:
                         aia_header_dict[wavelength].append(None)
 
                 if self.normalizations:
-                    aia_image_dict[wavelength][-1] -= self.normalizations["AIA"][wavelength]["mean"]
-                    aia_image_dict[wavelength][-1] /= self.normalizations["AIA"][wavelength]["std"]
+                    aia_image_dict[wavelength][-1] -= self.normalizations["AIA"][
+                        wavelength
+                    ]["mean"]
+                    aia_image_dict[wavelength][-1] /= self.normalizations["AIA"][
+                        wavelength
+                    ]["std"]
 
         aia_image = np.array(list(aia_image_dict.values()))
-        return (aia_image[:, 0, :, :], aia_header_dict) if self.drop_frame_dim else (aia_image, aia_header_dict)
+        return (
+            (aia_image[:, 0, :, :], aia_header_dict)
+            if self.drop_frame_dim
+            else (aia_image, aia_header_dict)
+        )
 
     def get_hmi_image(self, idx):
         hmi_image_dict = {}
@@ -152,15 +167,26 @@ class SDOMLWebDataset(Dataset):
 
                 if self.get_header:
                     hmi_header_dict[component].append(
-                        {keys: values[idx_component] for keys, values in ds.attrs.items()}
+                        {
+                            keys: values[idx_component]
+                            for keys, values in ds.attrs.items()
+                        }
                     )
 
                 if self.normalizations:
-                    hmi_image_dict[component][-1] -= self.normalizations["HMI"][component]["mean"]
-                    hmi_image_dict[component][-1] /= self.normalizations["HMI"][component]["std"]
+                    hmi_image_dict[component][-1] -= self.normalizations["HMI"][
+                        component
+                    ]["mean"]
+                    hmi_image_dict[component][-1] /= self.normalizations["HMI"][
+                        component
+                    ]["std"]
 
         hmi_image = np.array(list(hmi_image_dict.values()))
-        return (hmi_image[:, 0, :, :], hmi_header_dict) if self.drop_frame_dim else (hmi_image, hmi_header_dict)
+        return (
+            (hmi_image[:, 0, :, :], hmi_header_dict)
+            if self.drop_frame_dim
+            else (hmi_image, hmi_header_dict)
+        )
 
     def get_eve(self, idx):
         eve_ion_dict = {}
@@ -207,7 +233,9 @@ class SDOMLWebDataModule(pl.LightningDataModule):
         max_date=None,
     ):
         super().__init__()
-        self.num_workers = num_workers if num_workers is not None else os.cpu_count() // 2
+        self.num_workers = (
+            num_workers if num_workers is not None else os.cpu_count() // 2
+        )
         self.hmi_tar_path = hmi_tar_path
         self.aia_tar_path = aia_tar_path
         self.eve_tar_path = eve_tar_path
@@ -230,11 +258,15 @@ class SDOMLWebDataModule(pl.LightningDataModule):
         self.ions = ions
 
         self.train_months = [
-            i for i in range(1, 13) if i not in self.test_months + self.val_months + self.holdout_months
+            i
+            for i in range(1, 13)
+            if i not in self.test_months + self.val_months + self.holdout_months
         ]
 
         self.index_cache_filename = f"{cache_dir}/aligndata_{self.cache_id}.csv"
-        self.normalizations_cache_filename = f"{cache_dir}/normalizations_{self.cache_id}.json"
+        self.normalizations_cache_filename = (
+            f"{cache_dir}/normalizations_{self.cache_id}.json"
+        )
         self.hmi_mask_cache_filename = f"{cache_dir}/hmi_mask_512x512.npy"
 
         self.aligndata = self.__aligntime()

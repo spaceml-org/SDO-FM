@@ -97,10 +97,15 @@ class MaskedAutoencoderViT3D(nn.Module):
 
         if self.limb_mask is not None:
             from skimage.measure import block_reduce
-            import numpy as np 
-            new_matrix = block_reduce(data_module.hmi_mask.numpy(), block_size=(16,16), func=np.max)
-            self.ids_limb_mask = torch.tensor(np.argwhere(new_matrix.reshape(1024)==0).reshape(-1))
-        
+            import numpy as np
+
+            new_matrix = block_reduce(
+                data_module.hmi_mask.numpy(), block_size=(16, 16), func=np.max
+            )
+            self.ids_limb_mask = torch.tensor(
+                np.argwhere(new_matrix.reshape(1024) == 0).reshape(-1)
+            )
+
         # MAE encoder specifics
         self.patch_embed = PatchEmbed(
             img_size, patch_size, num_frames, tubelet_size, in_chans, embed_dim
