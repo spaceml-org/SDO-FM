@@ -50,7 +50,7 @@ data:
   num_workers: 4               # set appropriately for your machine
   prefetch_factor: 3            # TODO: not implemented, 2 is default
   num_frames: 1 # WARNING: This is only read for FINETUNING, model num_frames overrides in BACKBONE
-  drop_frame_dim: True         # Requires num_frames=1, for backwards compatibility
+  drop_frame_dim: false         # Requires num_frames=1, for backwards compatibility
   sdoml:
     base_directory: "/mnt/sdoml"
     sub_directory:
