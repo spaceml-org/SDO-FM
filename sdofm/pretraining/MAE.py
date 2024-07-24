@@ -1,12 +1,13 @@
 import lightning.pytorch as pl
 import torch.nn.functional as F
-
+import torch
 from sdofm.constants import ALL_WAVELENGTHS
 
 from ..BaseModule import BaseModule
 from ..benchmarks import reconstruction as bench_recon
 from ..models import MaskedAutoencoderViT3D
-
+from skimage.measure import block_reduce
+import numpy as np 
 
 class MAE(BaseModule):
     def __init__(
@@ -37,6 +38,12 @@ class MAE(BaseModule):
         self.validation_metrics = []
         self.masking_ratio = masking_ratio
 
+        # block reduce limb_mask
+        limb_mask_ids = None
+        if limb_mask is not None:
+            new_matrix = block_reduce(limb_mask.numpy(), block_size=(16,16), func=np.max)
+            limb_mask_ids = torch.tensor(np.argwhere(new_matrix.reshape(1024)==0).reshape(-1))
+
         self.autoencoder = MaskedAutoencoderViT3D(
             img_size,
             patch_size,
@@ -52,7 +59,7 @@ class MAE(BaseModule):
             mlp_ratio,
             norm_layer,
             norm_pix_loss,
-            limb_mask,
+            limb_mask_ids,
         )
         # self.autoencoder = PrithviEncoder(self.mae)
 

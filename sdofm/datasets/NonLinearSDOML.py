@@ -90,6 +90,7 @@ class NonLinearSDOMLDataset(SDOMLDataset):
         #     image_stack = super().__getitem__(idx)
 
         # r["image_stack"] = image_stack
-        image_stack = np.log(super().__getitem__(idx))
+        m = super().__getitem__(idx) + 10.
+        image_stack = np.log(m, out=np.zeros_like(m), where=(m!=0)) #, dtype=np.float64)
 
         return image_stack
