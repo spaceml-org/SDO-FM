@@ -1,0 +1,3 @@
+[submodule "submodules/sdomlpy"]
+	path = submodules/sdomlpy
+	url = git@github.com:SDOML/sdomlpy.git
