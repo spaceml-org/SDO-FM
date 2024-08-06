@@ -1,4 +1,5 @@
 wandb
+artifacts
 output
 outputs
 *.tar
