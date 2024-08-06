@@ -2,6 +2,7 @@ wandb
 output
 outputs
 *.tar
+notebooks/imgs_for_google_emb/*
 
 # aux directories
 .vscode
