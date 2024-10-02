@@ -93,9 +93,9 @@ class MaskedAutoencoderViT3D(nn.Module):
 
         # --------------------------------------------------------------------------
         # Limb masking
-        if ids_limb_mask is not None:      
-            self.register_buffer("ids_limb_mask", ids_limb_mask)       
-        
+        if ids_limb_mask is not None:
+            self.register_buffer("ids_limb_mask", ids_limb_mask)
+
         # MAE encoder specifics
         self.patch_embed = PatchEmbed(
             img_size, patch_size, num_frames, tubelet_size, in_chans, embed_dim
@@ -239,7 +239,9 @@ class MaskedAutoencoderViT3D(nn.Module):
         # # disk. For that we override these kept ids to include always keeping the mask
         # # as we don't want to learn that.
         if self.ids_limb_mask is not None:
-            noise = torch.rand(N, L-len(self.ids_limb_mask), device=x.device)  # noise on the solar disk
+            noise = torch.rand(
+                N, L - len(self.ids_limb_mask), device=x.device
+            )  # noise on the solar disk
 
             # sort noise for each sample
             ids_shuffle = torch.argsort(
@@ -247,8 +249,14 @@ class MaskedAutoencoderViT3D(nn.Module):
             )  # ascend: small is keep, large is remove
 
             # keep mask ids, cat the random selection
-            limb_len_keep = int(L-len(self.ids_limb_mask) * (1 - mask_ratio))
-            ids_restore = torch.cat([self.ids_limb_mask.unsqueeze(0).repeat(N,1), torch.argsort(ids_shuffle, dim=1)[:,:limb_len_keep]], dim=1)
+            limb_len_keep = int(L - len(self.ids_limb_mask) * (1 - mask_ratio))
+            ids_restore = torch.cat(
+                [
+                    self.ids_limb_mask.unsqueeze(0).repeat(N, 1),
+                    torch.argsort(ids_shuffle, dim=1)[:, :limb_len_keep],
+                ],
+                dim=1,
+            )
             # print(ids_restore.shape)
         else:
             # noise = torch.rand(N, L, device=x.device)  # noise in [0, 1]

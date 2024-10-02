@@ -9,12 +9,9 @@ import torchvision
 from torch.nn import HuberLoss
 
 from ..BaseModule import BaseModule
-from ..models import (
-    Autocalibration13Head,
-    ConvTransformerTokensToEmbeddingNeck,
-    HybridIrradianceModel,
-    PrithviEncoder,
-)
+from ..models import (Autocalibration13Head,
+                      ConvTransformerTokensToEmbeddingNeck,
+                      HybridIrradianceModel, PrithviEncoder)
 
 
 class VirtualEVE_bUNet(BaseModule):
