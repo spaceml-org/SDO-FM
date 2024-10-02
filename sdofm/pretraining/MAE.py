@@ -107,9 +107,8 @@ class MAE(BaseModule):
         batch_metrics = bench_recon.mean_metrics(merged_metrics)
 
         if isinstance(self.logger, pl.loggers.wandb.WandbLogger):
-            from pandas import DataFrame
-
             import wandb
+            from pandas import DataFrame
 
             # this only occurs on rank zero only
             df = DataFrame(batch_metrics)

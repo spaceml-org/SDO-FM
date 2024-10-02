@@ -6,9 +6,9 @@ from pathlib import Path
 
 import lightning.pytorch as pl
 import torch
+import wandb
 from lightning.fabric.strategies import XLAFSDPStrategy
 
-import wandb
 from sdofm import utils
 from sdofm.datasets import (BrightSpotsSDOMLDataModule,
                             HelioProjectedSDOMLDataModule,
