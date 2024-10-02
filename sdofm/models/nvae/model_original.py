@@ -16,8 +16,14 @@ from distributions import DiscMixLogistic, Normal, NormalDecoder
 from neural_ar_operations import ARConv2d, ARInvertedResidual
 from neural_ar_operations import ELUConv as ARELUConv
 from neural_ar_operations import MixLogCDFParam, mix_log_cdf_flow
-from neural_operations import (OPS, SE, Conv2D, DecCombinerCell,
-                               EncCombinerCell, get_skip_connection)
+from neural_operations import (
+    OPS,
+    SE,
+    Conv2D,
+    DecCombinerCell,
+    EncCombinerCell,
+    get_skip_connection,
+)
 from thirdparty.inplaced_sync_batchnorm import SyncBatchNormSwish
 from torch.distributions.bernoulli import Bernoulli
 from utils import get_input_size, get_stride_for_cell_type, groups_per_scale

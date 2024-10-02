@@ -81,6 +81,7 @@ class MaskedAutoencoderViT3D(nn.Module):
         mlp_ratio=4.0,
         norm_layer="LayerNorm",
         norm_pix_loss=False,
+        ids_limb_mask=None,
     ):
         super().__init__()
 
@@ -91,6 +92,10 @@ class MaskedAutoencoderViT3D(nn.Module):
                 raise NotImplementedError(f"Norm layer [{norm_layer}] not implemented.")
 
         # --------------------------------------------------------------------------
+        # Limb masking
+        if ids_limb_mask is not None:
+            self.register_buffer("ids_limb_mask", ids_limb_mask)
+
         # MAE encoder specifics
         self.patch_embed = PatchEmbed(
             img_size, patch_size, num_frames, tubelet_size, in_chans, embed_dim
@@ -230,16 +235,49 @@ class MaskedAutoencoderViT3D(nn.Module):
         # print("x shape when masking", x.shape)
         len_keep = int(L * (1 - mask_ratio))
 
-        noise = torch.rand(N, L, device=x.device)  # noise in [0, 1]
+        # # if using a solar limb mask, we're not interested in predicting outside the
+        # # disk. For that we override these kept ids to include always keeping the mask
+        # # as we don't want to learn that.
+        if self.ids_limb_mask is not None:
+            noise = torch.rand(
+                N, L - len(self.ids_limb_mask), device=x.device
+            )  # noise on the solar disk
 
-        # sort noise for each sample
-        ids_shuffle = torch.argsort(
-            noise, dim=1
-        )  # ascend: small is keep, large is remove
-        ids_restore = torch.argsort(ids_shuffle, dim=1)
+            # sort noise for each sample
+            ids_shuffle = torch.argsort(
+                noise, dim=1
+            )  # ascend: small is keep, large is remove
+
+            # keep mask ids, cat the random selection
+            limb_len_keep = int(L - len(self.ids_limb_mask) * (1 - mask_ratio))
+            ids_restore = torch.cat(
+                [
+                    self.ids_limb_mask.unsqueeze(0).repeat(N, 1),
+                    torch.argsort(ids_shuffle, dim=1)[:, :limb_len_keep],
+                ],
+                dim=1,
+            )
+            # print(ids_restore.shape)
+        else:
+            # noise = torch.rand(N, L, device=x.device)  # noise in [0, 1]
+
+            # # sort noise for each sample
+            # ids_shuffle = torch.argsort(
+            #     noise, dim=1
+            # )  # ascend: small is keep, large is remove
+
+            # ids_restore = torch.argsort(ids_shuffle, dim=1)
+            noise = torch.rand(N, L, device=x.device)  # noise in [0, 1]
+
+            # sort noise for each sample
+            ids_shuffle = torch.argsort(
+                noise, dim=1
+            )  # ascend: small is keep, large is remove
+            ids_restore = torch.argsort(ids_shuffle, dim=1)
 
         # keep the first subset
         ids_keep = ids_shuffle[:, :len_keep]
+
         x_masked = torch.gather(x, dim=1, index=ids_keep.unsqueeze(-1).repeat(1, 1, D))
 
         # generate the binary mask: 0 is keep, 1 is remove
