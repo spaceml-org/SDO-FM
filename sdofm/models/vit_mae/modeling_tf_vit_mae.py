@@ -27,21 +27,13 @@ import numpy as np
 import tensorflow as tf
 from transformers.activations_tf import get_tf_activation
 
-from ...file_utils import (
-    ModelOutput,
-    add_start_docstrings,
-    add_start_docstrings_to_model_forward,
-    replace_return_docstrings,
-)
+from ...file_utils import (ModelOutput, add_start_docstrings,
+                           add_start_docstrings_to_model_forward,
+                           replace_return_docstrings)
 from ...modeling_tf_outputs import TFBaseModelOutput
-from ...modeling_tf_utils import (
-    TFModelInputType,
-    TFPreTrainedModel,
-    get_initializer,
-    keras,
-    keras_serializable,
-    unpack_inputs,
-)
+from ...modeling_tf_utils import (TFModelInputType, TFPreTrainedModel,
+                                  get_initializer, keras, keras_serializable,
+                                  unpack_inputs)
 from ...tf_utils import shape_list, stable_softmax
 from ...utils import logging
 
@@ -57,9 +49,8 @@ from ...utils import logging
 logger = logging.get_logger(__name__)
 
 
-from ..deprecated._archive_maps import (
-    VIT_MAE_PRETRAINED_CONFIG_ARCHIVE_MAP,
-)  # noqa: F401, E402
+from ..deprecated._archive_maps import \
+    VIT_MAE_PRETRAINED_CONFIG_ARCHIVE_MAP  # noqa: F401, E402
 
 
 class ViTMAEConfig(PretrainedConfig):

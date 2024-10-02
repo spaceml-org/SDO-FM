@@ -1,0 +1,13 @@
+astropy
+blosc
+dask
+lightning[extra]
+ipykernel
+loguru
+omegaconf
+overrides
+pandas
+scipy
+sunpy
+wandb
+zarr

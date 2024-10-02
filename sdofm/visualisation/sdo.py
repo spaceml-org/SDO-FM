@@ -14,6 +14,9 @@ from tqdm import tqdm
 # cm = mpl.colors.LinearSegmentedColormap.from_list('my_colormap', colors, 1024)
 
 LABELS = [
+    "HMI Bx",
+    "HMI By",
+    "HMI Bz",
     "AIA 94 Å",
     "AIA 131 Å",
     "AIA 171 Å",
@@ -23,15 +26,12 @@ LABELS = [
     "AIA 335 Å",
     "AIA 1600 Å",
     "AIA 1700 Å",
-    "HMI Bx",
-    "HMI By",
-    "HMI Bz",
 ]
 
 cms = [
-    # sunpycm.cmlist.get("hmimag"),
-    # sunpycm.cmlist.get("hmimag"),
-    # sunpycm.cmlist.get("hmimag"),
+    sunpycm.cmlist.get("hmimag"),
+    sunpycm.cmlist.get("hmimag"),
+    sunpycm.cmlist.get("hmimag"),
     sunpycm.cmlist.get("sdoaia94"),
     sunpycm.cmlist.get("sdoaia131"),
     sunpycm.cmlist.get("sdoaia171"),

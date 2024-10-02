@@ -10,12 +10,8 @@ from lightning.fabric.strategies import XLAFSDPStrategy
 
 import wandb
 from sdofm import utils
-from sdofm.datasets import (
-    SDOMLDataModule,
-    BrightSpotsSDOMLDataModule,
-    HelioProjectedSDOMLDataModule,
-    NonLinearSDOMLDataModule
-)
+from sdofm.datasets import (BrightSpotsSDOMLDataModule,
+                            HelioProjectedSDOMLDataModule, SDOMLDataModule)
 from sdofm.pretraining import MAE, NVAE, SAMAE, BrightSpots
 
 
@@ -39,16 +35,13 @@ class Pretrainer(object):
                     self.data_module_class = BrightSpotsSDOMLDataModule
                 case "HelioProjected":
                     self.data_module_class = HelioProjectedSDOMLDataModule
-                case "Log":
-                    self.data_module_class = NonLinearSDOMLDataModule
-                
         print(f"Using {self.data_module_class} Data Class")
 
         match model_name:
             case "mae":
                 self.model_class = MAE
 
-                self.data_module = self.data_module_class(
+                self.data_module = SDOMLDataModule(
                     # hmi_path=os.path.join(
                     #     self.cfg.data.sdoml.base_directory, self.cfg.data.sdoml.sub_directory.hmi
                     # ),
@@ -75,7 +68,6 @@ class Pretrainer(object):
                     max_date=cfg.data.max_date,
                     num_frames=cfg.model.mae.num_frames,
                     drop_frame_dim=cfg.data.drop_frame_dim,
-                    apply_mask=cfg.data.sdoml.apply_mask,
                 )
                 self.data_module.setup()
 
@@ -88,7 +80,6 @@ class Pretrainer(object):
                 else:
                     self.model = self.model_class(
                         **cfg.model.mae,
-                        limb_mask = self.data_module.hmi_mask if cfg.model.misc.limb_mask is True else None,
                         optimiser=cfg.model.opt.optimiser,
                         lr=cfg.model.opt.learning_rate,
                         weight_decay=cfg.model.opt.weight_decay,
@@ -118,7 +109,6 @@ class Pretrainer(object):
                     max_date=cfg.data.max_date,
                     num_frames=cfg.model.mae.num_frames,
                     drop_frame_dim=cfg.data.drop_frame_dim,
-                    apply_mask=cfg.data.sdoml.apply_mask,
                 )
                 self.data_module.setup()
 
@@ -234,45 +224,9 @@ class Pretrainer(object):
 
     def load_checkpoint(self, checkpoint_reference):
         print("Loading checkpoint...")
-        if isinstance(self.logger, pl.loggers.wandb.WandbLogger):
-
-            # download checkpoint
-            try:
-                # check if already downloaded for this run, possible if mutliprocess spawned
-                have_ckpt = False
-                if os.path.exists("artifacts"):
-                    potential_artifact_loc = glob.glob(
-                        f"artifacts/model-{checkpoint_reference}/model.ckpt"
-                    )
-                    if len(potential_artifact_loc) == 1:
-                        print(
-                            "Found pre-downloaded checkpoint at",
-                            potential_artifact_loc[0],
-                        )
-                        artifact_dir = potential_artifact_loc[0]
-                        have_ckpt = True
-                if not have_ckpt:
-                    print(
-                        f"Could not find locally, searching W&B for {checkpoint_reference}..."
-                    )
-                    artifact = self.logger.use_artifact(
-                        checkpoint_reference
-                    )  # , type="model")
-                    downloaded_location = artifact.download()
-                    print("W&B model found/downloaded at", downloaded_location)
-                    artifact_dir = Path(downloaded_location) / "model.ckpt"
-            except (wandb.errors.CommError, AttributeError) as e:
-                print("W&B checkpoint not found, trying as direct path...")
-                artifact_dir = checkpoint_reference
-
-            # load checkpoint
-            self.model = self.model_class.load_from_checkpoint(artifact_dir)
-            print("Checkpoint loaded from", artifact_dir)
-            return self.model
-        else:
-            raise NotImplementedError(
-                "Loading checkpoints without W&B run reference or ckpt path is not supported."
-            )
+        self.model = self.model_class.load_from_checkpoint(checkpoint_reference)
+        print("Done")
+        return self.model
 
     def run(self):
         print("\nPRE-TRAINING\n")

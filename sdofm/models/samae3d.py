@@ -1,4 +1,4 @@
-"""Modified from https://huggingface.co/ibm-nasa-geospatial/Prithvi-100M/blob/main/Prithvi.py"""
+"""Modified from https://github.com/facebookresearch/mae/blob/main/models_mae.py"""
 
 import torch
 import torch.nn as nn
@@ -6,7 +6,8 @@ from einops import rearrange
 from timm.layers import to_2tuple
 from timm.models.vision_transformer import Block
 
-from ..utils import AttributeDict, get_3d_sincos_pos_embed, stonyhurst_to_patch_index
+from ..utils import (AttributeDict, get_3d_sincos_pos_embed,
+                     stonyhurst_to_patch_index)
 
 
 class PatchEmbed(nn.Module):
