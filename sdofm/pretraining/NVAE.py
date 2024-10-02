@@ -11,13 +11,9 @@ from .. import utils
 from ..BaseModule import BaseModule
 from ..benchmarks import reconstruction as bench_recon
 from ..models import NVIDIAAutoEncoder
-from ..models.nvae.utils import (
-    get_arch_cells,
-    kl_balancer,
-    kl_balancer_coeff,
-    kl_coeff,
-    reconstruction_loss,
-)
+from ..models.nvae.utils import (get_arch_cells, kl_balancer,
+                                 kl_balancer_coeff, kl_coeff,
+                                 reconstruction_loss)
 
 
 class NVAE(BaseModule):

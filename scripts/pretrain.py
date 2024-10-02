@@ -10,11 +10,8 @@ from lightning.fabric.strategies import XLAFSDPStrategy
 
 import wandb
 from sdofm import utils
-from sdofm.datasets import (
-    SDOMLDataModule,
-    BrightSpotsSDOMLDataModule,
-    HelioProjectedSDOMLDataModule,
-)
+from sdofm.datasets import (BrightSpotsSDOMLDataModule,
+                            HelioProjectedSDOMLDataModule, SDOMLDataModule)
 from sdofm.pretraining import MAE, NVAE, SAMAE, BrightSpots
 
 
@@ -234,15 +231,20 @@ class Pretrainer(object):
                 # check if already downloaded for this run, possible if mutliprocess spawned
                 have_ckpt = False
                 if os.path.exists("artifacts"):
-                    potential_artifact_loc = glob.glob(f"artifacts/model-{checkpoint_reference}/model.ckpt")
+                    potential_artifact_loc = glob.glob(
+                        f"artifacts/model-{checkpoint_reference}/model.ckpt"
+                    )
                     if len(potential_artifact_loc) == 1:
                         print(
-                            "Found pre-downloaded checkpoint at", potential_artifact_loc[0]
+                            "Found pre-downloaded checkpoint at",
+                            potential_artifact_loc[0],
                         )
                         artifact_dir = potential_artifact_loc[0]
-                        have_ckpt = True   
+                        have_ckpt = True
                 if not have_ckpt:
-                    print(f"Could not find locally, searching W&B for {checkpoint_reference}...")
+                    print(
+                        f"Could not find locally, searching W&B for {checkpoint_reference}..."
+                    )
                     artifact = self.logger.use_artifact(
                         checkpoint_reference
                     )  # , type="model")
