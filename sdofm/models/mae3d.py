@@ -1,4 +1,4 @@
-"""Modified from https://huggingface.co/ibm-nasa-geospatial/Prithvi-100M/blob/main/Prithvi.py"""
+# This model is modified from https://github.com/facebookresearch/mae/blob/main/models_mae.py
 
 import torch
 import torch.nn as nn
