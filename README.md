@@ -17,7 +17,8 @@
 <p>The engineering focused on adapting two model architectures to the SDO dataset, and building a benchmarking harness for scientific validation. Training was engineered for a TPU-distributed approach, designed to be compute-agnostic and aligned with industry best practices.</p>
 
 <p>SDO-FM was built using a science-led approach and active involvement of the scientific community.  Validation tasks for the prototype as well as future proposed validation tasks were chosen through a series of workshops and feedback from heliophysics researchers, teams building other foundation models in weather prediction, climate science, and earth sciences, and SDO instrument experts. This collaborative approach will help us optimize the model for useful downstream applications and adapt to emerging tools and methodologies.</p>
-<p>Downstream validation tasks</p>
+
+#### Downstream validation tasks
 <p>The model is validated by adapting the embeddings and comparing outcomes against published known results using classical machine learning methods. The four validation tasks used were predicting the Earth’s thermospheric density (F10.7), reconstructing missing channels, autocalibration of the AIA instrument, and the virtualization of the broken MEGS-A instrument (Virtual EVE).<p>
 
 The project will also investigate if the foundation model can either replicate or leverage [SDOML](https://sdoml.org) (the data product developed in FDL.AI). 
