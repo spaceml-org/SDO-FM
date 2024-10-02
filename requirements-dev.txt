@@ -3,6 +3,7 @@
 ## helpful functions for notebooks
 scikit-image
 zarr[jupyter]
+plotly
 
 ## for profiling 
 tensorflow-cpu

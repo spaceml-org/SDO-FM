@@ -37,7 +37,7 @@ experiment:
   evaluate: false     # skip training and only evaluate (requires checkpoint to be set)
   checkpoint: null    # this is the wandb run_id of the checkpoint to load
   device: null        # this is set automatically using the disable_cuda flag and torch.cuda.is_available()
-  precision: '16' #-true'       # (32, 64) for cuda, ('32-true', '16-true', 'bf16-true') for tpu
+  precision: 'bf16-true' #-true'       # (32, 64) for cuda, ('32-true', '16-true', 'bf16-true') for tpu
   log_n_batches: 1000 # log every n training batches
   save_results: true  # save full results to file and wandb
   accelerator: "auto"  # options are "auto", "gpu", "tpu", "ipu", or "cpu"
@@ -148,7 +148,7 @@ model:
     learning_rate: 0.0001
     weight_decay: 3e-4 # 0.0
     optimiser: "adam"
-    epochs: 2
+    epochs: 100
     patience: 2
 
 # hydra configuration
