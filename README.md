@@ -3,14 +3,24 @@
 
 
 <p align="center">
-<a href="https://github.com/psf/black/blob/main/LICENSE"><img alt="License" src="https://img.shields.io/badge/licence-Anne%3F-8A2BE2.svg"></a>
+<a href="https://github.com/psf/black/blob/main/LICENSE"><img alt="License" src="https://img.shields.io/badge/licence-MIT-8A2BE2.svg"></a>
 <a href="https://github.com/psf/black"><img alt="Code style: black" src="https://img.shields.io/badge/code%20style-black-000000.svg"></a>
 <a href="https://wandb.ai/fdlx/sdofm/"><img alt="Weights and Biases" src="https://img.shields.io/badge/Weights_&_Biases-FFCC33?style=flat&logo=WeightsAndBiases&logoColor=black"></a>
 <a href="https://console.cloud.google.com/cloud-build/builds?project=sdo-fm-2024"><img alt="Cloud Build" src="https://img.shields.io/badge/cloud_build-blue.svg"></a>
 <a href="https://github.com/spaceml-org/SDO-FM/actions/workflows/black.yml"><img alt="Lint" src="https://github.com/spaceml-org/SDO-FM/actions/workflows/black.yml/badge.svg?branch=main"></a>
 </p>
 
-SDO-FM is envisioned as a ‘multi-modal’ foundation model, integrating instruments on SDO; AIA, EVE, HMI. We will be looking to experiment with the scope multi-modal and choose datasets that are most complimentary to the task. The project will also investigate if the Foundation model can either replicate or leverage [SDOML](https://sdoml.org) (the data product developed in FDL.AI). 
+<p>SDO-FM is a prototype foundation model that integrates data from SDO’s HMI and AMI instruments to encapsulate the Sun's dynamics within an embedding space. Encapsulating the Sun's complex physical interactions in a multi-modal model unlocks the potential for many downstream investigations, lowering the complexity and costs for machine learning in solar physics.  Building a small fine-tuned adapter can be done for a fraction of the cost of building an AI model with classical methods. </p>
+
+<p>SDO-FM consists of four key components: an ingestion pipeline to create machine learning ready datasets, model architecture and training, embeddings and fine-tunable models, and downstream fine-tuned applications. SDO-FM utilizes existing datasets (SDOMLv2) and well defined downstream tasks. </p>
+
+<p>The engineering focused on adapting two model architectures to the SDO dataset, and building a benchmarking harness for scientific validation. Training was engineered for a TPU-distributed approach, designed to be compute-agnostic and aligned with industry best practices.</p>
+
+<p>SDO-FM was built using a science-led approach and active involvement of the scientific community.  Validation tasks for the prototype as well as future proposed validation tasks were chosen through a series of workshops and feedback from heliophysics researchers, teams building other foundation models in weather prediction, climate science, and earth sciences, and SDO instrument experts. This collaborative approach will help us optimize the model for useful downstream applications and adapt to emerging tools and methodologies.</p>
+<p>Downstream validation tasks</p>
+<p>The model is validated by adapting the embeddings and comparing outcomes against published known results using classical machine learning methods. The four validation tasks used were predicting the Earth’s thermospheric density (F10.7), reconstructing missing channels, autocalibration of the AIA instrument, and the virtualization of the broken MEGS-A instrument (Virtual EVE).<p>
+
+The project will also investigate if the foundation model can either replicate or leverage [SDOML](https://sdoml.org) (the data product developed in FDL.AI). 
 
 #### Repo structure
 ```bash
