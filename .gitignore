@@ -3,6 +3,8 @@ artifacts
 output
 outputs
 *.tar
+notebooks/imgs_for_google_emb/*
+notebooks/camera_ready/*/lightning_logs
 
 # aux directories
 .vscode

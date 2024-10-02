@@ -123,11 +123,12 @@ model:
     
   # FINE-TUNERS
   autocalibration:
+    freeze_encoder: true
     num_neck_filters: 32
     output_dim: 1 # not sure why this is implemented for autocorrelation, should be a scalar
     loss: "mse" # options: "mse", "heteroscedastic"
-    freeze_encoder: true
   virtualeve:
+    freeze_encoder: true
     num_neck_filters: 32
     cnn_model: "efficientnet_b3"
     lr_linear: 0.01

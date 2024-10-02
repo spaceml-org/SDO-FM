@@ -13,7 +13,7 @@ from ..models import (
     Autocalibration13Head,
     ConvTransformerTokensToEmbeddingNeck,
     HybridIrradianceModel,
-    PrithviEncoder,
+    WrapEncoder,
 )
 
 
@@ -48,7 +48,7 @@ class VirtualEVE(BaseModule):
         self.eve_norm = eve_norm
 
         self.backbone = backbone
-        self.encoder = PrithviEncoder(self.backbone)
+        self.encoder = WrapEncoder(self.backbone)
 
         if freeze_encoder:
             self.encoder.eval()
