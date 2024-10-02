@@ -10,9 +10,12 @@ import wandb
 from lightning.fabric.strategies import XLAFSDPStrategy
 
 from sdofm import utils
-from sdofm.datasets import (BrightSpotsSDOMLDataModule,
-                            HelioProjectedSDOMLDataModule,
-                            NonLinearSDOMLDataModule, SDOMLDataModule)
+from sdofm.datasets import (
+    BrightSpotsSDOMLDataModule,
+    HelioProjectedSDOMLDataModule,
+    NonLinearSDOMLDataModule,
+    SDOMLDataModule,
+)
 from sdofm.pretraining import MAE, NVAE, SAMAE, BrightSpots
 
 
