@@ -6,8 +6,7 @@ from einops import rearrange
 from timm.layers import to_2tuple
 from timm.models.vision_transformer import Block
 
-from ..utils import (AttributeDict, get_3d_sincos_pos_embed,
-                     stonyhurst_to_patch_index)
+from ..utils import AttributeDict, get_3d_sincos_pos_embed, stonyhurst_to_patch_index
 
 
 class PatchEmbed(nn.Module):

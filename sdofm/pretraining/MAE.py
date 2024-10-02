@@ -1,5 +1,8 @@
 import lightning.pytorch as pl
+import numpy as np
+import torch
 import torch.nn.functional as F
+from skimage.measure import block_reduce
 
 from sdofm.constants import ALL_WAVELENGTHS
 
@@ -27,6 +30,7 @@ class MAE(BaseModule):
         norm_layer="LayerNorm",
         norm_pix_loss=False,
         masking_ratio=0.75,
+        limb_mask=None,
         # pass to BaseModule
         *args,
         **kwargs,
@@ -35,6 +39,16 @@ class MAE(BaseModule):
         # self.validation_step_outputs = {'x': [], 'x_hat': []}
         self.validation_metrics = []
         self.masking_ratio = masking_ratio
+
+        # block reduce limb_mask
+        limb_mask_ids = None
+        if limb_mask is not None:
+            new_matrix = block_reduce(
+                limb_mask.numpy(), block_size=(16, 16), func=np.max
+            )
+            limb_mask_ids = torch.tensor(
+                np.argwhere(new_matrix.reshape(1024) == 0).reshape(-1)
+            )
 
         self.autoencoder = MaskedAutoencoderViT3D(
             img_size,
@@ -51,6 +65,7 @@ class MAE(BaseModule):
             mlp_ratio,
             norm_layer,
             norm_pix_loss,
+            limb_mask_ids,
         )
         # self.autoencoder = PrithviEncoder(self.mae)
 
@@ -92,9 +107,8 @@ class MAE(BaseModule):
         batch_metrics = bench_recon.mean_metrics(merged_metrics)
 
         if isinstance(self.logger, pl.loggers.wandb.WandbLogger):
-            from pandas import DataFrame
-
             import wandb
+            from pandas import DataFrame
 
             # this only occurs on rank zero only
             df = DataFrame(batch_metrics)

@@ -7,12 +7,11 @@ import lightning.pytorch as pl
 import segmentation_models_pytorch as smp
 import torch
 import torch.nn as nn
+import wandb
 from einops import rearrange
 from omegaconf import DictConfig, OmegaConf
 from segmentation_models_pytorch import Unet
 from segmentation_models_pytorch.decoders.unet.decoder import UnetDecoder
-
-import wandb
 
 from .. import utils
 from . import ConvTransformerTokensToEmbeddingNeck, MaskedAutoencoderViT3D

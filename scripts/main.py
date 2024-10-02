@@ -12,11 +12,11 @@ from pathlib import Path
 import hydra
 import numpy as np
 import torch
+import wandb
 from lightning.pytorch import seed_everything
 from lightning.pytorch.loggers.wandb import WandbLogger
 from omegaconf import DictConfig, OmegaConf
 
-import wandb
 from sdofm import utils  # import days_hours_mins_secs_str
 from sdofm.utils import flatten_dict
 
