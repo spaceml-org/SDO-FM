@@ -87,9 +87,6 @@ python scripts/main.py --config-name=pretrain_tiny
 ```bash
 python scripts/main.py --config-name=dimming_tiny
 ```
-### Science objective 2: TBD
-### Science objective 3: TBD
-
 
 ## Development
 ### Training a model in GCP Vertex
@@ -134,3 +131,9 @@ ACCELERATOR_COUNT: 8
     year            = {2024}
 }
 ```
+
+# Acknowledgement
+
+This work is the research product of the SDO-FM: A Multi-Modal Foundation Model POC for SDO. This has been funded and supported by NASA under **Grant award No 80NSSC24K0701**. Any opinions, findings, and conclusions or recommendations expressed in this material are those of the authors and do not necessarily reflect the views of the National Aeronautics and Space Administration (NASA). The research and its outputs have been designed, managed and delivered by Trillium Technologies Inc (https://trillium.tech). Trillium is a research and development company with a focus on intelligent systems and collaborative communities for planetary stewardship, space exploration and human health. Trillium aspires to ensure that the latest tools and techniques in Artificial Intelligence (AI) and Machine Learning (ML) are applied to developing open science for all Humankind.
+
+
