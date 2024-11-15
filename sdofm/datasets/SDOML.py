@@ -419,7 +419,7 @@ class SDOMLDataModule(pl.LightningDataModule):
                 ions_id = "_".join(self.ions).replace(" ", "_")
             ids.append(ions_id)
 
-        self.cache_id = f"{'_'.join(ids)}_{self.cadence}"
+        self.cache_id = f"{'_'.join(sorted(ids))}_{self.cadence}_{str(self.min_date).replace(" ", "")}-{str(self.max_date).replace(" ", "")}"
 
         if self.aia_path is not None:
             if "small" in self.aia_path:
