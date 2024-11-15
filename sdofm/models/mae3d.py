@@ -93,8 +93,7 @@ class MaskedAutoencoderViT3D(nn.Module):
 
         # --------------------------------------------------------------------------
         # Limb masking
-        if ids_limb_mask is not None:
-            self.register_buffer("ids_limb_mask", ids_limb_mask)
+        self.register_buffer("ids_limb_mask", ids_limb_mask)
 
         # MAE encoder specifics
         self.patch_embed = PatchEmbed(
