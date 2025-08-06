@@ -135,7 +135,7 @@ def main(cfg: DictConfig) -> None:
         logger = None
 
     # set up checkpointing to gcp bucket
-    if cfg.experiment.gcp_storage:
+    if cfg.experiment.gcp_storage.enabled:
         from google.cloud import storage
 
         client = storage.Client()  # project='myproject'

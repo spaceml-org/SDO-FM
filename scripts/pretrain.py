@@ -16,6 +16,7 @@ from sdofm.datasets import (
     NonLinearSDOMLDataModule,
     SDOMLDataModule,
 )
+from sdofm.datasets.SDOMLWebDataset import SDOMLWebDataModule
 from sdofm.pretraining import MAE, NVAE, SAMAE, BrightSpots
 
 
@@ -27,20 +28,24 @@ class Pretrainer(object):
         self.data_module = None
         self.model = None
         self.model_class = None
-        self.data_module_class = SDOMLDataModule
+        
+        self.use_webdataset = self.cfg.data.sdoml.get("use_webdataset", False)
+        if self.use_webdataset:
+            self.data_module_class = SDOMLWebDataModule
+        else:
+            self.data_module_class = SDOMLDataModule
+            if self.cfg.data.sdoml.feature_engineering.enabled:
+                match self.cfg.data.sdoml.feature_engineering.dclass:
+                    case "BrightSpots":
+                        self.data_module_class = BrightSpotsSDOMLDataModule
+                    case "HelioProjected":
+                        self.data_module_class = HelioProjectedSDOMLDataModule
+                    case "Log":
+                        self.data_module_class = NonLinearSDOMLDataModule
 
         model_name = (
             cfg.experiment.model if not is_backbone else cfg.experiment.backbone.model
         )
-
-        if cfg.data.sdoml.feature_engineering.enabled:
-            match cfg.data.sdoml.feature_engineering.dclass:
-                case "BrightSpots":
-                    self.data_module_class = BrightSpotsSDOMLDataModule
-                case "HelioProjected":
-                    self.data_module_class = HelioProjectedSDOMLDataModule
-                case "Log":
-                    self.data_module_class = NonLinearSDOMLDataModule
 
         print(f"Using {self.data_module_class} Data Class")
 
@@ -188,16 +193,33 @@ class Pretrainer(object):
             case "nvae":
                 self.model_class = NVAE
 
-                self.data_module = SDOMLDataModule(
-                    hmi_path=os.path.join(
-                        self.cfg.data.sdoml.base_directory,
-                        self.cfg.data.sdoml.sub_directory.hmi,
-                    ),
-                    aia_path=os.path.join(
-                        self.cfg.data.sdoml.base_directory,
-                        self.cfg.data.sdoml.sub_directory.aia,
-                    ),
-                    eve_path=None,
+                if self.use_webdataset:
+                    data_paths = {
+                        "hmi_tar_path": os.path.join(
+                            self.cfg.data.sdoml.base_directory,
+                            self.cfg.data.sdoml.sub_directory.hmi,
+                        ) if self.cfg.data.sdoml.sub_directory.hmi else None,
+                        "aia_tar_path": os.path.join(
+                            self.cfg.data.sdoml.base_directory,
+                            self.cfg.data.sdoml.sub_directory.aia,
+                        ) if self.cfg.data.sdoml.sub_directory.aia else None,
+                        "eve_tar_path": None,
+                    }
+                else:
+                    data_paths = {
+                        "hmi_path": os.path.join(
+                            self.cfg.data.sdoml.base_directory,
+                            self.cfg.data.sdoml.sub_directory.hmi,
+                        ) if self.cfg.data.sdoml.sub_directory.hmi else None,
+                        "aia_path": os.path.join(
+                            self.cfg.data.sdoml.base_directory,
+                            self.cfg.data.sdoml.sub_directory.aia,
+                        ) if self.cfg.data.sdoml.sub_directory.aia else None,
+                        "eve_path": None,
+                    }
+
+                self.data_module = self.data_module_class(
+                    **data_paths,
                     components=self.cfg.data.sdoml.components,
                     wavelengths=self.cfg.data.sdoml.wavelengths,
                     ions=self.cfg.data.sdoml.ions,
