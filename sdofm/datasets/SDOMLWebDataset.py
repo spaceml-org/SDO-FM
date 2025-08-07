@@ -13,6 +13,7 @@ import torch
 import webdataset as wds
 from torch.utils.data import Dataset
 from tqdm import tqdm
+from astropy.time import Time
 
 def get_info_from_shard(shard_url):
     """
@@ -47,15 +48,28 @@ def get_info_from_shard(shard_url):
         ds = wds.WebDataset(shard_url, shardshuffle=False, handler=wds.warn_and_continue).decode()
         for sample in ds:
             # Ensure that the sample has a json file and that the T_OBS key exists
-            if "json" in sample and "T_OBS" in sample["json"]:
+            if "json" in sample and "t_obs" in sample["json"]:
                 key = sample["__key__"]
-                timestamp = sample["json"]["T_OBS"]
-                info.append({"key": key, "Time": timestamp, "item": item})
+                timestamp_str = sample["json"]["t_obs"]
+                
+                # Handle TAI timestamps using astropy
+                if timestamp_str.endswith('_TAI'):
+                    # astropy expects format like '2018-09-23 04:00:01.856'
+                    cleaned_str = timestamp_str.removesuffix('_TAI').replace('.', '-', 2).replace('_', ' ', 1)
+                    t = Time(cleaned_str, scale='tai')
+                    timestamp = t.utc.isot
+                else:
+                    # For other formats, assume they are UTC or pandas can handle them
+                    timestamp = timestamp_str.replace('Z', '')
+
+                info.append({"key": key, "Time": timestamp, "channel": item})
     except Exception as e:
         # Log errors instead of silently passing
         print(f"Error processing shard {shard_url}: {e}")
         
     return info
+
+
 def _calculate_stats_for_shard(args):
     shard_url, train_months, data_type, keys_of_interest = args
     
@@ -410,6 +424,7 @@ class SDOMLWebDataModule(pl.LightningDataModule):
             aligndata["Time"] = pd.to_datetime(aligndata["Time"])
             aligndata.set_index("Time", inplace=True)
             return aligndata
+        
         print(f"No alignment cache found at {self.index_cache_filename}")
         print(f"\nData alignment calculation begin:")
         print("-" * 50)
@@ -428,7 +443,7 @@ class SDOMLWebDataModule(pl.LightningDataModule):
                 # Replace shard number pattern with a wildcard
                 glob_path = re.sub(r'\{.*?\}', '*', formatted_path)
                 
-                found_shards = glob.glob(glob_path)
+                found_shards = glob.glob(glob_path)[-2:]  # Get the last two shards
                 if not found_shards:
                     print(f"Warning: No shards found for {data_type} item {item} with path {glob_path}")
                 all_shards.extend(found_shards)
@@ -451,11 +466,15 @@ class SDOMLWebDataModule(pl.LightningDataModule):
             process_shards(self.hmi_tar_path, self.components, "HMI")
 
         df = pd.DataFrame(all_data)
+        print(df.head())
         df['Time'] = pd.to_datetime(df['Time'])
         df['Time'] = df['Time'].dt.round(self.cadence)
+        
+        # Remove duplicates before pivoting
+        df.drop_duplicates(subset=['Time', 'channel'], inplace=True)
 
-        # Pivot the table to get idx_{wavelength} columns
-        join_series = df.pivot_table(index='Time', columns='item', values='key').add_prefix('idx_')
+        # Pivot the table to get idx_{channel} columns
+        join_series = df.pivot_table(index='Time', columns='channel', values='key').add_prefix('idx_')
         
         # Inner join to keep only timestamps present in all items
         join_series.dropna(inplace=True)
